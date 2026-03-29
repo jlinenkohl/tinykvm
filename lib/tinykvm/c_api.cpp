@@ -70,6 +70,34 @@ std::vector<std::string> convert_strv(const char* const* data, size_t count)
 	}
 	return out;
 }
+
+int vmcall_addr_u64_impl(tkvm_machine_t* machine, uint64_t addr, const uint64_t* args, size_t argc)
+{
+	if (machine == nullptr || machine->impl == nullptr || addr == 0 || (argc > 0 && args == nullptr)) {
+		return set_error("Invalid argument in vmcall_addr_u64_impl", TKVM_INVALID_ARGUMENT);
+	}
+	if (argc > 6) {
+		return set_error("vmcall supports at most 6 u64 arguments", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		switch (argc) {
+		case 0: machine->impl->vmcall(addr); break;
+		case 1: machine->impl->vmcall(addr, args[0]); break;
+		case 2: machine->impl->vmcall(addr, args[0], args[1]); break;
+		case 3: machine->impl->vmcall(addr, args[0], args[1], args[2]); break;
+		case 4: machine->impl->vmcall(addr, args[0], args[1], args[2], args[3]); break;
+		case 5: machine->impl->vmcall(addr, args[0], args[1], args[2], args[3], args[4]); break;
+		case 6: machine->impl->vmcall(addr, args[0], args[1], args[2], args[3], args[4], args[5]); break;
+		default: return set_error("vmcall argument dispatch failed", TKVM_INVALID_ARGUMENT);
+		}
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("vmcall_addr_u64_impl failed with unknown exception");
+	}
+}
 } // namespace
 
 extern "C" {
@@ -282,6 +310,30 @@ int tkvm_machine_vmcall1_u64(tkvm_machine_t* machine, const char* symbol, uint64
 	} catch (...) {
 		return set_error("tkvm_machine_vmcall1_u64 failed with unknown exception");
 	}
+}
+
+int tkvm_machine_vmcall_u64(tkvm_machine_t* machine, const char* symbol, const uint64_t* args, size_t argc)
+{
+	if (machine == nullptr || machine->impl == nullptr || symbol == nullptr) {
+		return set_error("Invalid argument in tkvm_machine_vmcall_u64", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		const auto addr = machine->impl->address_of(symbol);
+		if (addr == 0) {
+			return set_error("Symbol not found in tkvm_machine_vmcall_u64");
+		}
+		return vmcall_addr_u64_impl(machine, addr, args, argc);
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_vmcall_u64 failed with unknown exception");
+	}
+}
+
+int tkvm_machine_vmcall_addr_u64(tkvm_machine_t* machine, uint64_t addr, const uint64_t* args, size_t argc)
+{
+	return vmcall_addr_u64_impl(machine, addr, args, argc);
 }
 
 int tkvm_machine_timed_vmcall0(tkvm_machine_t* machine, const char* symbol, float timeout_secs)

@@ -137,13 +137,34 @@ int main(int argc, char** argv)
 		}
 	}
 
-	if (tkvm_machine_vmcall1_u64(machine, "write_value", 42) != TKVM_OK) {
-		fprintf(stderr, "tkvm_machine_vmcall1_u64(write_value) failed: %s\n", tkvm_last_error());
+	{
+		const uint64_t args[] = {42};
+		if (tkvm_machine_vmcall_u64(machine, "write_value", args, 1) != TKVM_OK) {
+			fprintf(stderr, "tkvm_machine_vmcall_u64(write_value) failed: %s\n", tkvm_last_error());
+			tkvm_machine_destroy(machine);
+			return 1;
+		}
+	}
+	if (tkvm_machine_vmcall_addr_u64(machine, addr, NULL, 0) != TKVM_OK) {
+		fprintf(stderr, "tkvm_machine_vmcall_addr_u64(test_return) failed: %s\n", tkvm_last_error());
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
-	if (tkvm_machine_vmcall1_u64(machine, "test_is_value", 42) != TKVM_OK) {
-		fprintf(stderr, "tkvm_machine_vmcall1_u64(test_is_value) failed: %s\n", tkvm_last_error());
+	if (tkvm_machine_return_value(machine, &rv) != TKVM_OK || rv != 0x31337) {
+		fprintf(stderr, "unexpected return value from vmcall_addr_u64 test_return: %ld\n", rv);
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	{
+		const uint64_t args[] = {42};
+		if (tkvm_machine_vmcall_u64(machine, "test_is_value", args, 1) != TKVM_OK) {
+			fprintf(stderr, "tkvm_machine_vmcall_u64(test_is_value) failed: %s\n", tkvm_last_error());
+			tkvm_machine_destroy(machine);
+			return 1;
+		}
+	}
+	if (tkvm_machine_vmcall_u64(machine, "test_return", NULL, 7) == TKVM_OK) {
+		fprintf(stderr, "vmcall_u64 unexpectedly accepted >6 arguments\n");
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
