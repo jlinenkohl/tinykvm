@@ -1,5 +1,6 @@
 #pragma once
 #include "../forward.hpp"
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <vector>

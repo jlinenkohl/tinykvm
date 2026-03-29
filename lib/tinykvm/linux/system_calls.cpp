@@ -2,6 +2,7 @@
 #include "threads.hpp"
 #include <cstring>
 #include <fcntl.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <sched.h>
 #include <signal.h>

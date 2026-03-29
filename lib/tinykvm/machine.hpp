@@ -3,6 +3,7 @@
 #include "memory.hpp"
 #include "memory_bank.hpp"
 #include "mmap_cache.hpp"
+#include "util/span.hpp"
 #include "linux/fds.hpp"
 #include "linux/signals.hpp"
 #include "vcpu.hpp"
@@ -10,7 +11,6 @@
 #include <cassert>
 #include <functional>
 #include <memory>
-#include <span>
 #include <vector>
 
 namespace tinykvm {
@@ -81,7 +81,7 @@ struct Machine
 	void memzero(address_t src, size_t len);
 	/* View sequential user-writable memory as a string_view, or throw an exception. Small
 		structs can be viewed provided the guest over-aligns so that it never crosses a page. */
-	std::span<uint8_t> writable_memview(address_t src, size_t len);
+	Span<uint8_t> writable_memview(address_t src, size_t len);
 	/* View sequential user-writable memory as an array of T, or throw an exception. */
 	template <typename T>
 	T* writable_memarray(address_t src, size_t elements = 1) {
@@ -312,7 +312,7 @@ struct Machine
 	static void setup_linux_system_calls(bool unsafe_syscalls = false);
 	Machine(const std::vector<uint8_t>& binary, const MachineOptions&);
 	Machine(std::string_view binary, const MachineOptions&);
-	Machine(std::span<const uint8_t> binary, const MachineOptions&);
+	Machine(Span<const uint8_t> binary, const MachineOptions&);
 	Machine(const Machine& other, const MachineOptions&);
 	~Machine();
 

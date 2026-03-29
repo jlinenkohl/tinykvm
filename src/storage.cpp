@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
+#include <limits.h>
 #include <unistd.h>
 #include "assert.hpp"
 #include "load_file.hpp"

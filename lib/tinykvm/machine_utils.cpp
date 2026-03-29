@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cstring>
+#include <limits.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/uio.h>
+#include <unistd.h>
 #include "amd64/paging.hpp"
 #include "util/scoped_profiler.hpp"
 static constexpr bool VERBOSE_FILE_BACKED_MMAP = false;
@@ -511,14 +513,14 @@ Machine::StringOrView Machine::string_or_view(address_t src, size_t len) const
 	}
 }
 
-std::span<uint8_t> Machine::writable_memview(address_t src, size_t len)
+Span<uint8_t> Machine::writable_memview(address_t src, size_t len)
 {
 	const size_t offset = src & PageMask();
 	const size_t size = std::min(vMemory::PageSize() - offset, len);
 	auto* page = memory.get_writable_page(src & ~PageMask(),
 		memory.expectedUsermodeFlags(), false, true);
 
-	std::span<uint8_t> view {(uint8_t*) &page[offset], size};
+	Span<uint8_t> view {(uint8_t*) &page[offset], size};
 	src += size;
 	len -= size;
 
@@ -531,7 +533,7 @@ std::span<uint8_t> Machine::writable_memview(address_t src, size_t len)
 
 		auto *ptr = (uint8_t *)&page[offset];
 		if (ptr == view.data() + view.size()) {
-			view = std::span<uint8_t>{view.data(), view.size() + size};
+			view = Span<uint8_t>{view.data(), view.size() + size};
 		} else {
 			machine_exception("Memory not sequential", src);
 		}

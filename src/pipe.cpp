@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cstdio>
 #include <fcntl.h>
+#include <unistd.h>
 #include <sys/uio.h>
 #include "assert.hpp"
 #include "load_file.hpp"
