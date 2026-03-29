@@ -7,6 +7,19 @@
 extern "C" {
 #endif
 
+/* Public C API version for compile-time compatibility checks. */
+#define TKVM_CAPI_VERSION_MAJOR 0
+#define TKVM_CAPI_VERSION_MINOR 9
+#define TKVM_CAPI_VERSION_PATCH 0
+#define TKVM_CAPI_VERSION_NUMBER \
+	((TKVM_CAPI_VERSION_MAJOR << 16) | (TKVM_CAPI_VERSION_MINOR << 8) | TKVM_CAPI_VERSION_PATCH)
+
+/* Feature probes for consumers that support multiple tinykvm revisions. */
+#define TKVM_CAPI_FEATURE_TYPED_ERRORS 1
+#define TKVM_CAPI_FEATURE_GUEST_COPY 1
+#define TKVM_CAPI_FEATURE_VMCALL_U64_ARRAY 1
+#define TKVM_CAPI_FEATURE_FORK_RESET 1
+
 typedef struct tkvm_machine tkvm_machine_t;
 
 enum {
@@ -53,6 +66,14 @@ struct tkvm_options {
 	int snapshot_mode;
 	size_t hugepages_arena_size;
 };
+
+/*
+Contract summary:
+- Return codes: 0 is success, all negative values are errors.
+- Out-parameters are only valid when the function returns TKVM_OK.
+- Machine handles are owned by the caller and must be released with tkvm_machine_destroy.
+- tkvm_last_error() returns a thread-local pointer that may change after the next API call.
+*/
 
 int tkvm_init(int unsafe_syscalls);
 void tkvm_options_set_defaults(struct tkvm_options* options);

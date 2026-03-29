@@ -4,6 +4,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef TKVM_CAPI_VERSION_NUMBER
+#error "Missing TKVM_CAPI_VERSION_NUMBER"
+#endif
+#ifndef TKVM_CAPI_FEATURE_TYPED_ERRORS
+#error "Missing TKVM_CAPI_FEATURE_TYPED_ERRORS"
+#endif
+#ifndef TKVM_CAPI_FEATURE_GUEST_COPY
+#error "Missing TKVM_CAPI_FEATURE_GUEST_COPY"
+#endif
+#ifndef TKVM_CAPI_FEATURE_VMCALL_U64_ARRAY
+#error "Missing TKVM_CAPI_FEATURE_VMCALL_U64_ARRAY"
+#endif
+#ifndef TKVM_CAPI_FEATURE_FORK_RESET
+#error "Missing TKVM_CAPI_FEATURE_FORK_RESET"
+#endif
+
 static int load_file(const char* path, unsigned char** out_data, size_t* out_size)
 {
 	FILE* f = fopen(path, "rb");
@@ -61,6 +77,56 @@ int main(int argc, char** argv)
 		free(binary);
 		return 1;
 	}
+	if (tkvm_machine_create(NULL, binary_size, &opts, &machine) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from create(NULL, ...), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_create(binary, 0, &opts, &machine) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from create(size=0), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_create(binary, binary_size, &opts, NULL) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from create(out=NULL), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_run(NULL, 0.1f) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from run(NULL), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_setup_linux(NULL, NULL, 0, NULL, 0) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from setup_linux(NULL), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_return_value(NULL, &rv) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from return_value(NULL, ...), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_return_value(NULL, NULL) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from return_value(NULL, NULL), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_vmcall_addr_u64(NULL, 0x1, NULL, 0) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from vmcall_addr_u64(NULL, ...), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_prepare_copy_on_write(NULL, 4096) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from prepare_copy_on_write(NULL), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (tkvm_machine_fork(NULL, &opts, &forked) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from fork(NULL, ...), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
 
 	if (tkvm_machine_create(binary, binary_size, &opts, &machine) != TKVM_OK) {
 		fprintf(stderr, "tkvm_machine_create failed: %s\n", tkvm_last_error());
@@ -68,6 +134,42 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	free(binary);
+
+	if (tkvm_machine_copy_to_guest(machine, 0, NULL, 1) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from copy_to_guest(data=NULL,len>0), got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_copy_from_guest(machine, NULL, 0, 1) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from copy_from_guest(dst=NULL,len>0), got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_address_of(machine, NULL, &addr) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from address_of(symbol=NULL), got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_address_of(machine, "test_return", NULL) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from address_of(out=NULL), got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_vmcall0(machine, NULL) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from vmcall0(symbol=NULL), got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_vmcall_addr_u64(machine, 0, NULL, 0) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from vmcall_addr_u64(addr=0), got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_timed_vmcall0(machine, NULL, 1.0f) != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument from timed_vmcall0(symbol=NULL), got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
 
 	{
 		const char* vm_argv[] = {"kvmtest", "Hello World!\n"};
