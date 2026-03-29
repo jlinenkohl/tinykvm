@@ -64,6 +64,11 @@ int tkvm_machine_return_value(tkvm_machine_t* machine, long* out_value);
 int tkvm_machine_address_of(tkvm_machine_t* machine, const char* symbol, uint64_t* out_addr);
 int tkvm_machine_vmcall0(tkvm_machine_t* machine, const char* symbol);
 int tkvm_machine_vmcall1_u64(tkvm_machine_t* machine, const char* symbol, uint64_t arg0);
+int tkvm_machine_timed_vmcall0(tkvm_machine_t* machine, const char* symbol, float timeout_secs);
+int tkvm_machine_prepare_copy_on_write(tkvm_machine_t* machine, size_t max_work_mem);
+int tkvm_machine_fork(const tkvm_machine_t* master, const struct tkvm_options* options, tkvm_machine_t** out_machine);
+int tkvm_machine_reset_to(tkvm_machine_t* machine, const tkvm_machine_t* master,
+	const struct tkvm_options* options, int* out_full_reset);
 
 const char* tkvm_last_error(void);
 

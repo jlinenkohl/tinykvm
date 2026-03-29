@@ -252,6 +252,82 @@ int tkvm_machine_vmcall1_u64(tkvm_machine_t* machine, const char* symbol, uint64
 	}
 }
 
+int tkvm_machine_timed_vmcall0(tkvm_machine_t* machine, const char* symbol, float timeout_secs)
+{
+	if (machine == nullptr || machine->impl == nullptr || symbol == nullptr) {
+		return set_error("Invalid argument in tkvm_machine_timed_vmcall0", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		const auto addr = machine->impl->address_of(symbol);
+		if (addr == 0) {
+			return set_error("Symbol not found in tkvm_machine_timed_vmcall0");
+		}
+		machine->impl->timed_vmcall(addr, timeout_secs);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_timed_vmcall0 failed with unknown exception");
+	}
+}
+
+int tkvm_machine_prepare_copy_on_write(tkvm_machine_t* machine, size_t max_work_mem)
+{
+	if (machine == nullptr || machine->impl == nullptr) {
+		return set_error("Invalid machine in tkvm_machine_prepare_copy_on_write", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		machine->impl->prepare_copy_on_write(max_work_mem);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_prepare_copy_on_write failed with unknown exception");
+	}
+}
+
+int tkvm_machine_fork(const tkvm_machine_t* master, const struct tkvm_options* options, tkvm_machine_t** out_machine)
+{
+	if (master == nullptr || master->impl == nullptr || out_machine == nullptr) {
+		return set_error("Invalid argument in tkvm_machine_fork", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		MachineOptions converted = convert_options(options);
+		tkvm_machine* forked = new tkvm_machine;
+		forked->impl = new Machine(*master->impl, converted);
+		*out_machine = forked;
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_fork failed with unknown exception");
+	}
+}
+
+int tkvm_machine_reset_to(tkvm_machine_t* machine, const tkvm_machine_t* master,
+	const struct tkvm_options* options, int* out_full_reset)
+{
+	if (machine == nullptr || machine->impl == nullptr || master == nullptr || master->impl == nullptr) {
+		return set_error("Invalid argument in tkvm_machine_reset_to", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		MachineOptions converted = convert_options(options);
+		const bool full_reset = machine->impl->reset_to(*master->impl, converted);
+		if (out_full_reset != nullptr) {
+			*out_full_reset = full_reset ? 1 : 0;
+		}
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_reset_to failed with unknown exception");
+	}
+}
+
 const char* tkvm_last_error(void)
 {
 	return g_last_error.c_str();

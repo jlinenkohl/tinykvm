@@ -40,8 +40,10 @@ int main(int argc, char** argv)
 	unsigned char* binary = NULL;
 	size_t binary_size = 0;
 	tkvm_machine_t* machine = NULL;
+	tkvm_machine_t* forked = NULL;
 	long rv = 0;
 	uint64_t addr = 0;
+	int full_reset = 0;
 
 	if (load_file(guest, &binary, &binary_size) != 0) {
 		fprintf(stderr, "failed to load guest file: %s\n", guest);
@@ -50,6 +52,8 @@ int main(int argc, char** argv)
 
 	struct tkvm_options opts;
 	tkvm_options_set_defaults(&opts);
+	opts.max_mem = 0x10000000ULL; /* 256MB */
+	opts.max_cow_mem = 2U * 1024U * 1024U; /* 2MB */
 	if (tkvm_init(0) != TKVM_OK) {
 		fprintf(stderr, "tkvm_init failed: %s\n", tkvm_last_error());
 		free(binary);
@@ -115,6 +119,54 @@ int main(int argc, char** argv)
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
+
+	if (tkvm_machine_timed_vmcall0(machine, "test_return", 1.0f) != TKVM_OK) {
+		fprintf(stderr, "tkvm_machine_timed_vmcall0 failed: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_return_value(machine, &rv) != TKVM_OK || rv != 0x31337) {
+		fprintf(stderr, "unexpected return value from timed test_return: %ld\n", rv);
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+
+	if (tkvm_machine_prepare_copy_on_write(machine, 65536) != TKVM_OK) {
+		fprintf(stderr, "tkvm_machine_prepare_copy_on_write failed: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_fork(machine, &opts, &forked) != TKVM_OK) {
+		fprintf(stderr, "tkvm_machine_fork failed: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_vmcall0(forked, "test_return") != TKVM_OK) {
+		fprintf(stderr, "forked vmcall failed: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(forked);
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_return_value(forked, &rv) != TKVM_OK || rv != 0x31337) {
+		fprintf(stderr, "unexpected return value from forked test_return: %ld\n", rv);
+		tkvm_machine_destroy(forked);
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_reset_to(forked, machine, &opts, &full_reset) != TKVM_OK) {
+		fprintf(stderr, "tkvm_machine_reset_to failed: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(forked);
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (full_reset != 0 && full_reset != 1) {
+		fprintf(stderr, "unexpected full_reset flag: %d\n", full_reset);
+		tkvm_machine_destroy(forked);
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+
+	tkvm_machine_destroy(forked);
 
 	tkvm_machine_destroy(machine);
 
