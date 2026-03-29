@@ -6,6 +6,24 @@
 
 static long nprimes = 0;
 
+static uint64_t compute_checksum(uint64_t rounds)
+{
+	uint64_t acc = 0x243f6a8885a308d3ULL;
+	uint64_t state = 0x9e3779b97f4a7c15ULL;
+
+	for (uint64_t i = 0; i < rounds; i++)
+	{
+		state ^= state << 13;
+		state ^= state >> 7;
+		state ^= state << 17;
+
+		acc ^= state + 0x9e3779b97f4a7c15ULL + (acc << 6) + (acc >> 2);
+		acc = (acc << 9) | (acc >> (64 - 9));
+		acc += i * 0x100000001b3ULL;
+	}
+	return acc & 0x7FFFFFFFFFFFFFFFULL;
+}
+
 int main(int argc, char** argv)
 {
 	char* test = (char *)malloc(14);
@@ -24,13 +42,13 @@ int main(int argc, char** argv)
 				prime[i] = 0;
 		}
 	}
-	return 666;
+	return 0x31337;
 }
 
 __attribute__((used))
 int test_return()
 {
-	return 666;
+	return 0x31337;
 }
 
 __attribute__((used))
@@ -66,7 +84,7 @@ int test_copy_on_write()
 {
 	assert(cow == 0);
 	cow = 1;
-	return 666;
+	return 0x31337;
 }
 
 __attribute__((used))
@@ -98,7 +116,7 @@ __attribute__((used))
 int test_is_value(int value)
 {
 	assert(cow == value);
-	return 666;
+	return 0x31337;
 }
 
 __attribute__((used))
@@ -118,4 +136,13 @@ __attribute__((used))
 int test_vcpu()
 {
 	return vcpuid();
+}
+
+__attribute__((used))
+long test_compute_checksum(long rounds)
+{
+	if (rounds <= 0) {
+		rounds = 1;
+	}
+	return (long)compute_checksum((uint64_t)rounds);
 }

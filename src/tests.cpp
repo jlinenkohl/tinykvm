@@ -8,12 +8,31 @@
 #include <tinykvm/rsp_client.hpp>
 #define GUEST_MEMORY   0x10000000  /* 256MB memory */
 #define GUEST_WORK_MEM 2*1024*1024 /* 2MB working memory */
+static constexpr long GUEST_OK = 0x31337;
 
 std::vector<uint8_t> load_file(const std::string& filename);
 static void test_master_vm(tinykvm::Machine&);
 static void test_forking(tinykvm::Machine&);
 static void test_copy_on_write(tinykvm::Machine&);
 static void test_vcpu(tinykvm::Machine&);
+
+static uint64_t host_compute_checksum(uint64_t rounds)
+{
+	uint64_t acc = 0x243f6a8885a308d3ULL;
+	uint64_t state = 0x9e3779b97f4a7c15ULL;
+
+	for (uint64_t i = 0; i < rounds; i++)
+	{
+		state ^= state << 13;
+		state ^= state >> 7;
+		state ^= state << 17;
+
+		acc ^= state + 0x9e3779b97f4a7c15ULL + (acc << 6) + (acc >> 2);
+		acc = (acc << 9) | (acc >> (64 - 9));
+		acc += i * 0x100000001b3ULL;
+	}
+	return acc & 0x7FFFFFFFFFFFFFFFULL;
+}
 
 static void verify_exists(tinykvm::Machine& vm, const char* name)
 {
@@ -54,6 +73,7 @@ int main(int argc, char** argv)
 	verify_exists(master_vm, "test_is_value");
 	verify_exists(master_vm, "test_loop");
 	verify_exists(master_vm, "test_vcpu");
+	verify_exists(master_vm, "test_compute_checksum");
 
 	/* Remote debugger session */
 	if (getenv("DEBUG"))
@@ -100,7 +120,7 @@ int main(int argc, char** argv)
 	}
 	/* Verify VM exit status */
 	auto regs = master_vm.registers();
-	KASSERT(regs.rdi == 666);
+	KASSERT(regs.rdi == GUEST_OK);
 	printf("*** Program startup OK\n");
 
 	printf("--- Beginning Master VM tests ---\n");
@@ -141,7 +161,7 @@ void test_master_vm(tinykvm::Machine& vm)
 {
 	/* Call into master VM */
 	vm.vmcall("test_return");
-	KASSERT(vm.return_value() == 666);
+	KASSERT(vm.return_value() == GUEST_OK);
 	try {
 		vm.vmcall("test_ud2");
 	} catch (const tinykvm::MachineException& me) {
@@ -154,6 +174,11 @@ void test_master_vm(tinykvm::Machine& vm)
 	KASSERT(vm.return_value() == 200);
 	vm.vmcall("test_malloc");
 	KASSERT(vm.return_value() != 0);
+	{
+		constexpr uint64_t rounds = 200000;
+		vm.vmcall("test_compute_checksum", rounds);
+		KASSERT((uint64_t)vm.return_value() == host_compute_checksum(rounds));
+	}
 
 	printf("--- Testing endless loop ---\n");
 	/* To test endless loops we rely on the Machine to
@@ -186,11 +211,11 @@ void test_master_vm(tinykvm::Machine& vm)
 	}
 	/* Run test_read (200) */
 	vm.smp().timed_smpcall(8, 0x200000, 0x10000, tr_addr, 2.0f);
-	/* Run test_return (666) */
+	/* Run test_return (GUEST_OK) */
 	vm.smp().timed_smpcall(8, 0x200000, 0x10000, tret_addr, 2.0f);
 	results = vm.smp().gather_return_values(8);
 	for (const auto res : results) {
-		KASSERT(res == 666);
+		KASSERT(res == GUEST_OK);
 	}
 	printf("*** Multi-processing OK\n");
 }
@@ -209,7 +234,7 @@ void test_forking(tinykvm::Machine& master_vm)
 	for (size_t i = 0; i < 20; i++)
 	{
 		vm.vmcall("test_return");
-		KASSERT(vm.return_value() == 666);
+		KASSERT(vm.return_value() == GUEST_OK);
 		vm.set_printer([] (auto, size_t) {});
 		try {
 			vm.vmcall("test_ud2");
@@ -246,7 +271,7 @@ void test_forking(tinykvm::Machine& master_vm)
 	{
 		vm.reset_to(master_vm, options);
 		vm.vmcall("test_return");
-		KASSERT(vm.return_value() == 666);
+		KASSERT(vm.return_value() == GUEST_OK);
 		vm.set_printer([] (auto, size_t) {});
 		try {
 			vm.vmcall("test_ud2");
@@ -296,7 +321,7 @@ void test_copy_on_write(tinykvm::Machine& master_vm)
 		try {
 			vm.reset_to(master_vm, options);
 			vm.vmcall("test_copy_on_write");
-			KASSERT(vm.return_value() == 666);
+			KASSERT(vm.return_value() == GUEST_OK);
 			vm.vmcall("test_malloc");
 			KASSERT(vm.return_value() != 0);
 			//vm.vmcall("test_expensive");
@@ -305,7 +330,7 @@ void test_copy_on_write(tinykvm::Machine& master_vm)
 			vm.vmcall("write_value", 10 + i);
 			KASSERT(vm.return_value() == 10 + i);
 			vm.vmcall("test_is_value", 10 + i);
-			KASSERT(vm.return_value() == 666);
+			KASSERT(vm.return_value() == GUEST_OK);
 		} catch (...) {
 			vm.print_pagetables();
 			vm.print_registers();

@@ -4,6 +4,8 @@ project(tinykvm C CXX)
 option(FLTO "Link-time optimizations" OFF)
 option(SANITIZE "Enable address and ub sanitizers" OFF)
 
+enable_testing()
+
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -O2 -ggdb3")
 
 if (FLTO)
@@ -49,3 +51,8 @@ add_executable(capi_smoke
 	tests/c_api_smoke.c
 )
 target_link_libraries(capi_smoke tinykvm_capi)
+
+add_test(
+	NAME evolution_smoke
+	COMMAND ${CMAKE_SOURCE_DIR}/tests/evolution_smoke.sh
+)

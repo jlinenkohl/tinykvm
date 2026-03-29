@@ -24,13 +24,13 @@ int main(int argc, char** argv)
 				prime[i] = 0;
 		}
 	}
-	return 666;
+	return 0x31337;
 }
 
 extern "C" __attribute__((used))
 int test_return()
 {
-	return 666;
+	return 0x31337;
 }
 
 extern "C" __attribute__((used))
@@ -66,7 +66,7 @@ int test_copy_on_write()
 {
 	assert(cow == 0);
 	cow = 1;
-	return 666;
+	return 0x31337;
 }
 
 extern "C" __attribute__((used))
