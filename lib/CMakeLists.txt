@@ -52,6 +52,14 @@ target_include_directories(tinykvm PUBLIC .)
 target_compile_features(tinykvm PUBLIC cxx_std_17)
 target_link_libraries(tinykvm PUBLIC pthread rt)
 
+add_library(tinykvm_capi STATIC
+	tinykvm/c_api.cpp
+)
+target_compile_definitions(tinykvm_capi PUBLIC _GNU_SOURCE=1)
+target_include_directories(tinykvm_capi PUBLIC .)
+target_compile_features(tinykvm_capi PUBLIC cxx_std_17)
+target_link_libraries(tinykvm_capi PUBLIC tinykvm)
+
 set_source_files_properties(
 	tinykvm/page_streaming.cpp
 	PROPERTIES COMPILE_FLAGS -mavx2)

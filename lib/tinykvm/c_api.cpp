@@ -1,0 +1,212 @@
+#include "c_api.h"
+
+#include "machine.hpp"
+
+#include <exception>
+#include <new>
+#include <string>
+#include <string_view>
+#include <vector>
+
+using tinykvm::Machine;
+using tinykvm::MachineOptions;
+
+struct tkvm_machine {
+	Machine* impl = nullptr;
+};
+
+namespace {
+thread_local std::string g_last_error;
+
+int set_error(const char* msg, int code = TKVM_ERROR)
+{
+	g_last_error = msg != nullptr ? msg : "Unknown error";
+	return code;
+}
+
+MachineOptions convert_options(const tkvm_options* options)
+{
+	MachineOptions converted {};
+	if (options == nullptr) {
+		return converted;
+	}
+
+	converted.max_mem = options->max_mem;
+	converted.max_cow_mem = options->max_cow_mem;
+	converted.stack_size = options->stack_size;
+	converted.reset_free_work_mem = options->reset_free_work_mem;
+	converted.dylink_address_hint = options->dylink_address_hint;
+	converted.heap_address_hint = options->heap_address_hint;
+	converted.vmem_base_address = options->vmem_base_address;
+	converted.verbose_loader = options->verbose_loader != 0;
+	converted.short_lived = options->short_lived != 0;
+	converted.hugepages = options->hugepages != 0;
+	converted.transparent_hugepages = options->transparent_hugepages != 0;
+	converted.master_direct_memory_writes = options->master_direct_memory_writes != 0;
+	converted.split_hugepages = options->split_hugepages != 0;
+	converted.split_all_hugepages_during_loading = options->split_all_hugepages_during_loading != 0;
+	converted.allow_reset_to_new_master = options->allow_reset_to_new_master != 0;
+	converted.reset_copy_all_registers = options->reset_copy_all_registers != 0;
+	converted.reset_enter_usermode = options->reset_enter_usermode != 0;
+	converted.reset_keep_all_work_memory = options->reset_keep_all_work_memory != 0;
+	converted.relocate_fixed_mmap = options->relocate_fixed_mmap != 0;
+	converted.executable_heap = options->executable_heap != 0;
+	converted.mmap_backed_files = options->mmap_backed_files != 0;
+	converted.snapshot_mode = static_cast<MachineOptions::SnapshotMode>(options->snapshot_mode);
+	converted.hugepages_arena_size = options->hugepages_arena_size;
+	if (options->snapshot_file != nullptr) {
+		converted.snapshot_file = options->snapshot_file;
+	}
+	return converted;
+}
+
+std::vector<std::string> convert_strv(const char* const* data, size_t count)
+{
+	std::vector<std::string> out;
+	out.reserve(count);
+	for (size_t i = 0; i < count; i++) {
+		out.emplace_back(data[i] != nullptr ? data[i] : "");
+	}
+	return out;
+}
+} // namespace
+
+extern "C" {
+
+int tkvm_init(int unsafe_syscalls)
+{
+	try {
+		Machine::init();
+		Machine::setup_linux_system_calls(unsafe_syscalls != 0);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_init failed with unknown exception");
+	}
+}
+
+void tkvm_options_set_defaults(struct tkvm_options* options)
+{
+	if (options == nullptr) {
+		return;
+	}
+	MachineOptions defaults {};
+	options->max_mem = defaults.max_mem;
+	options->max_cow_mem = defaults.max_cow_mem;
+	options->stack_size = defaults.stack_size;
+	options->reset_free_work_mem = defaults.reset_free_work_mem;
+	options->dylink_address_hint = defaults.dylink_address_hint;
+	options->heap_address_hint = defaults.heap_address_hint;
+	options->vmem_base_address = defaults.vmem_base_address;
+	options->verbose_loader = defaults.verbose_loader;
+	options->short_lived = defaults.short_lived;
+	options->hugepages = defaults.hugepages;
+	options->transparent_hugepages = defaults.transparent_hugepages;
+	options->master_direct_memory_writes = defaults.master_direct_memory_writes;
+	options->split_hugepages = defaults.split_hugepages;
+	options->split_all_hugepages_during_loading = defaults.split_all_hugepages_during_loading;
+	options->allow_reset_to_new_master = defaults.allow_reset_to_new_master;
+	options->reset_copy_all_registers = defaults.reset_copy_all_registers;
+	options->reset_enter_usermode = defaults.reset_enter_usermode;
+	options->reset_keep_all_work_memory = defaults.reset_keep_all_work_memory;
+	options->relocate_fixed_mmap = defaults.relocate_fixed_mmap;
+	options->executable_heap = defaults.executable_heap;
+	options->mmap_backed_files = defaults.mmap_backed_files;
+	options->snapshot_file = nullptr;
+	options->snapshot_mode = defaults.snapshot_mode;
+	options->hugepages_arena_size = defaults.hugepages_arena_size;
+}
+
+int tkvm_machine_create(const uint8_t* binary, size_t binary_size,
+	const struct tkvm_options* options, tkvm_machine_t** out_machine)
+{
+	if (binary == nullptr || binary_size == 0 || out_machine == nullptr) {
+		return set_error("Invalid arguments to tkvm_machine_create", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		MachineOptions converted = convert_options(options);
+		tkvm_machine* machine = new tkvm_machine;
+		machine->impl = new Machine(
+			std::string_view(reinterpret_cast<const char*>(binary), binary_size),
+			converted);
+		*out_machine = machine;
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_create failed with unknown exception");
+	}
+}
+
+void tkvm_machine_destroy(tkvm_machine_t* machine)
+{
+	if (machine == nullptr) {
+		return;
+	}
+	delete machine->impl;
+	delete machine;
+}
+
+int tkvm_machine_setup_linux(tkvm_machine_t* machine,
+	const char* const* argv, size_t argc,
+	const char* const* env, size_t envc)
+{
+	if (machine == nullptr || machine->impl == nullptr) {
+		return set_error("Invalid machine in tkvm_machine_setup_linux", TKVM_INVALID_ARGUMENT);
+	}
+	if ((argc > 0 && argv == nullptr) || (envc > 0 && env == nullptr)) {
+		return set_error("Invalid argv/env arguments in tkvm_machine_setup_linux", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		auto argv_vec = convert_strv(argv, argc);
+		auto env_vec = convert_strv(env, envc);
+		machine->impl->setup_linux(argv_vec, env_vec);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_setup_linux failed with unknown exception");
+	}
+}
+
+int tkvm_machine_run(tkvm_machine_t* machine, float timeout_secs)
+{
+	if (machine == nullptr || machine->impl == nullptr) {
+		return set_error("Invalid machine in tkvm_machine_run", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		machine->impl->run(timeout_secs);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_run failed with unknown exception");
+	}
+}
+
+int tkvm_machine_return_value(tkvm_machine_t* machine, long* out_value)
+{
+	if (machine == nullptr || machine->impl == nullptr || out_value == nullptr) {
+		return set_error("Invalid argument in tkvm_machine_return_value", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		*out_value = machine->impl->return_value();
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_return_value failed with unknown exception");
+	}
+}
+
+const char* tkvm_last_error(void)
+{
+	return g_last_error.c_str();
+}
+
+} // extern "C"
