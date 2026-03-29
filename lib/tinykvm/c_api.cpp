@@ -2,6 +2,7 @@
 
 #include "machine.hpp"
 
+#include <cstring>
 #include <exception>
 #include <new>
 #include <string>
@@ -23,6 +24,27 @@ int set_error(const char* msg, int code = TKVM_ERROR)
 {
 	g_last_error = msg != nullptr ? msg : "Unknown error";
 	return code;
+}
+
+int set_exception_error(const std::exception& e)
+{
+	if (dynamic_cast<const tinykvm::MachineTimeoutException*>(&e) != nullptr) {
+		return set_error(e.what(), TKVM_ERR_TIMEOUT);
+	}
+	if (dynamic_cast<const tinykvm::MemoryException*>(&e) != nullptr) {
+		return set_error(e.what(), TKVM_ERR_MEMORY);
+	}
+	if (const auto* me = dynamic_cast<const tinykvm::MachineException*>(&e); me != nullptr) {
+		const char* msg = me->what();
+		if (msg != nullptr && (strstr(msg, "not prepared") != nullptr || strstr(msg, "forked") != nullptr)) {
+			return set_error(msg, TKVM_ERR_INVALID_STATE);
+		}
+		return set_error(msg, TKVM_ERR_MACHINE);
+	}
+	if (dynamic_cast<const std::bad_alloc*>(&e) != nullptr) {
+		return set_error(e.what(), TKVM_ERR_MEMORY);
+	}
+	return set_error(e.what(), TKVM_ERROR);
 }
 
 MachineOptions convert_options(const tkvm_options* options)
@@ -93,7 +115,7 @@ int vmcall_addr_u64_impl(tkvm_machine_t* machine, uint64_t addr, const uint64_t*
 		}
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("vmcall_addr_u64_impl failed with unknown exception");
 	}
@@ -109,7 +131,7 @@ int tkvm_init(int unsafe_syscalls)
 		Machine::setup_linux_system_calls(unsafe_syscalls != 0);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_init failed with unknown exception");
 	}
@@ -162,7 +184,7 @@ int tkvm_machine_create(const uint8_t* binary, size_t binary_size,
 		*out_machine = machine;
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_create failed with unknown exception");
 	}
@@ -194,7 +216,7 @@ int tkvm_machine_setup_linux(tkvm_machine_t* machine,
 		machine->impl->setup_linux(argv_vec, env_vec);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_setup_linux failed with unknown exception");
 	}
@@ -210,7 +232,7 @@ int tkvm_machine_run(tkvm_machine_t* machine, float timeout_secs)
 		machine->impl->run(timeout_secs);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_run failed with unknown exception");
 	}
@@ -226,7 +248,7 @@ int tkvm_machine_return_value(tkvm_machine_t* machine, long* out_value)
 		*out_value = machine->impl->return_value();
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_return_value failed with unknown exception");
 	}
@@ -242,7 +264,7 @@ int tkvm_machine_copy_to_guest(tkvm_machine_t* machine, uint64_t guest_addr, con
 		machine->impl->copy_to_guest(guest_addr, data, len, false);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_copy_to_guest failed with unknown exception");
 	}
@@ -258,7 +280,7 @@ int tkvm_machine_copy_from_guest(tkvm_machine_t* machine, void* dst, uint64_t gu
 		machine->impl->copy_from_guest(dst, guest_addr, len);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_copy_from_guest failed with unknown exception");
 	}
@@ -272,9 +294,12 @@ int tkvm_machine_address_of(tkvm_machine_t* machine, const char* symbol, uint64_
 
 	try {
 		*out_addr = machine->impl->address_of(symbol);
+		if (*out_addr == 0) {
+			return set_error("Symbol not found", TKVM_ERR_SYMBOL_NOT_FOUND);
+		}
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_address_of failed with unknown exception");
 	}
@@ -287,10 +312,14 @@ int tkvm_machine_vmcall0(tkvm_machine_t* machine, const char* symbol)
 	}
 
 	try {
-		machine->impl->vmcall(symbol);
+		const auto addr = machine->impl->address_of(symbol);
+		if (addr == 0) {
+			return set_error("Symbol not found in tkvm_machine_vmcall0", TKVM_ERR_SYMBOL_NOT_FOUND);
+		}
+		machine->impl->vmcall(addr);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_vmcall0 failed with unknown exception");
 	}
@@ -303,10 +332,14 @@ int tkvm_machine_vmcall1_u64(tkvm_machine_t* machine, const char* symbol, uint64
 	}
 
 	try {
-		machine->impl->vmcall(symbol, arg0);
+		const auto addr = machine->impl->address_of(symbol);
+		if (addr == 0) {
+			return set_error("Symbol not found in tkvm_machine_vmcall1_u64", TKVM_ERR_SYMBOL_NOT_FOUND);
+		}
+		machine->impl->vmcall(addr, arg0);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_vmcall1_u64 failed with unknown exception");
 	}
@@ -321,11 +354,11 @@ int tkvm_machine_vmcall_u64(tkvm_machine_t* machine, const char* symbol, const u
 	try {
 		const auto addr = machine->impl->address_of(symbol);
 		if (addr == 0) {
-			return set_error("Symbol not found in tkvm_machine_vmcall_u64");
+			return set_error("Symbol not found in tkvm_machine_vmcall_u64", TKVM_ERR_SYMBOL_NOT_FOUND);
 		}
 		return vmcall_addr_u64_impl(machine, addr, args, argc);
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_vmcall_u64 failed with unknown exception");
 	}
@@ -345,12 +378,12 @@ int tkvm_machine_timed_vmcall0(tkvm_machine_t* machine, const char* symbol, floa
 	try {
 		const auto addr = machine->impl->address_of(symbol);
 		if (addr == 0) {
-			return set_error("Symbol not found in tkvm_machine_timed_vmcall0");
+			return set_error("Symbol not found in tkvm_machine_timed_vmcall0", TKVM_ERR_SYMBOL_NOT_FOUND);
 		}
 		machine->impl->timed_vmcall(addr, timeout_secs);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_timed_vmcall0 failed with unknown exception");
 	}
@@ -366,7 +399,7 @@ int tkvm_machine_prepare_copy_on_write(tkvm_machine_t* machine, size_t max_work_
 		machine->impl->prepare_copy_on_write(max_work_mem);
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_prepare_copy_on_write failed with unknown exception");
 	}
@@ -385,7 +418,7 @@ int tkvm_machine_fork(const tkvm_machine_t* master, const struct tkvm_options* o
 		*out_machine = forked;
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_fork failed with unknown exception");
 	}
@@ -406,7 +439,7 @@ int tkvm_machine_reset_to(tkvm_machine_t* machine, const tkvm_machine_t* master,
 		}
 		return TKVM_OK;
 	} catch (const std::exception& e) {
-		return set_error(e.what());
+		return set_exception_error(e);
 	} catch (...) {
 		return set_error("tkvm_machine_reset_to failed with unknown exception");
 	}

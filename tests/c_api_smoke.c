@@ -43,6 +43,7 @@ int main(int argc, char** argv)
 	tkvm_machine_t* machine = NULL;
 	tkvm_machine_t* forked = NULL;
 	long rv = 0;
+	int rc = TKVM_OK;
 	uint64_t addr = 0;
 	int full_reset = 0;
 
@@ -85,6 +86,24 @@ int main(int argc, char** argv)
 	}
 	if (tkvm_machine_return_value(machine, &rv) != TKVM_OK || rv != 0x31337) {
 		fprintf(stderr, "unexpected return value from guest main: %ld\n", rv);
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+
+	rc = tkvm_machine_address_of(machine, "symbol_that_does_not_exist", &addr);
+	if (rc != TKVM_ERR_SYMBOL_NOT_FOUND) {
+		fprintf(stderr, "expected symbol-not-found from address_of, got: %d (%s)\n",
+			rc, tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_vmcall0(machine, "symbol_that_does_not_exist") != TKVM_ERR_SYMBOL_NOT_FOUND) {
+		fprintf(stderr, "expected symbol-not-found from vmcall0, got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (tkvm_machine_timed_vmcall0(machine, "test_loop", 1.0f) != TKVM_ERR_TIMEOUT) {
+		fprintf(stderr, "expected timeout from timed_vmcall0(test_loop), got: %s\n", tkvm_last_error());
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
@@ -163,8 +182,9 @@ int main(int argc, char** argv)
 			return 1;
 		}
 	}
-	if (tkvm_machine_vmcall_u64(machine, "test_return", NULL, 7) == TKVM_OK) {
-		fprintf(stderr, "vmcall_u64 unexpectedly accepted >6 arguments\n");
+	rc = tkvm_machine_vmcall_u64(machine, "test_return", NULL, 7);
+	if (rc != TKVM_INVALID_ARGUMENT) {
+		fprintf(stderr, "expected invalid-argument for vmcall_u64 >6 args, got: %s\n", tkvm_last_error());
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
@@ -181,6 +201,12 @@ int main(int argc, char** argv)
 	}
 	if (tkvm_machine_return_value(machine, &rv) != TKVM_OK || rv != 0x31337) {
 		fprintf(stderr, "unexpected return value from timed test_return: %ld\n", rv);
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+
+	if (tkvm_machine_fork(machine, &opts, &forked) != TKVM_ERR_INVALID_STATE) {
+		fprintf(stderr, "expected invalid-state from fork before CoW prep, got: %s\n", tkvm_last_error());
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
