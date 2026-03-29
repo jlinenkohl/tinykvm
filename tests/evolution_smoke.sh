@@ -5,6 +5,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${ROOT_DIR}"
 
+# Keep smoke tests non-interactive unless explicitly requested.
+# Set TKVM_ALLOW_DEBUG=1 to keep DEBUG/GDB-related env behavior.
+if [[ "${TKVM_ALLOW_DEBUG:-0}" != "1" ]]; then
+	unset DEBUG GDB VMCALL FORK
+fi
+
 cmake -S . -B build
 cmake --build build -j
 
