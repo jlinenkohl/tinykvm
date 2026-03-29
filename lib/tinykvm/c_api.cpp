@@ -204,6 +204,38 @@ int tkvm_machine_return_value(tkvm_machine_t* machine, long* out_value)
 	}
 }
 
+int tkvm_machine_copy_to_guest(tkvm_machine_t* machine, uint64_t guest_addr, const void* data, size_t len)
+{
+	if (machine == nullptr || machine->impl == nullptr || (len > 0 && data == nullptr)) {
+		return set_error("Invalid argument in tkvm_machine_copy_to_guest", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		machine->impl->copy_to_guest(guest_addr, data, len, false);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_copy_to_guest failed with unknown exception");
+	}
+}
+
+int tkvm_machine_copy_from_guest(tkvm_machine_t* machine, void* dst, uint64_t guest_addr, size_t len)
+{
+	if (machine == nullptr || machine->impl == nullptr || (len > 0 && dst == nullptr)) {
+		return set_error("Invalid argument in tkvm_machine_copy_from_guest", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		machine->impl->copy_from_guest(dst, guest_addr, len);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_copy_from_guest failed with unknown exception");
+	}
+}
+
 int tkvm_machine_address_of(tkvm_machine_t* machine, const char* symbol, uint64_t* out_addr)
 {
 	if (machine == nullptr || machine->impl == nullptr || symbol == nullptr || out_addr == nullptr) {
