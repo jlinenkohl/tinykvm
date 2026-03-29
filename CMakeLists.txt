@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(tinykvm CXX)
+project(tinykvm C CXX)
 
 option(FLTO "Link-time optimizations" OFF)
 option(SANITIZE "Enable address and ub sanitizers" OFF)
@@ -44,3 +44,8 @@ add_executable(pipekvm
 	src/pipe.cpp
 )
 target_link_libraries(pipekvm tinykvm)
+
+add_executable(capi_smoke
+	tests/c_api_smoke.c
+)
+target_link_libraries(capi_smoke tinykvm_capi)
