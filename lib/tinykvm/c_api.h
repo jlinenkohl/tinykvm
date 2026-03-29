@@ -61,6 +61,9 @@ int tkvm_machine_setup_linux(tkvm_machine_t* machine,
 	const char* const* env, size_t envc);
 int tkvm_machine_run(tkvm_machine_t* machine, float timeout_secs);
 int tkvm_machine_return_value(tkvm_machine_t* machine, long* out_value);
+int tkvm_machine_address_of(tkvm_machine_t* machine, const char* symbol, uint64_t* out_addr);
+int tkvm_machine_vmcall0(tkvm_machine_t* machine, const char* symbol);
+int tkvm_machine_vmcall1_u64(tkvm_machine_t* machine, const char* symbol, uint64_t arg0);
 
 const char* tkvm_last_error(void);
 

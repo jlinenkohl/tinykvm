@@ -12,6 +12,7 @@ using tinykvm::Machine;
 using tinykvm::MachineOptions;
 
 struct tkvm_machine {
+	std::vector<uint8_t> owned_binary;
 	Machine* impl = nullptr;
 };
 
@@ -128,9 +129,8 @@ int tkvm_machine_create(const uint8_t* binary, size_t binary_size,
 	try {
 		MachineOptions converted = convert_options(options);
 		tkvm_machine* machine = new tkvm_machine;
-		machine->impl = new Machine(
-			std::string_view(reinterpret_cast<const char*>(binary), binary_size),
-			converted);
+		machine->owned_binary.assign(binary, binary + binary_size);
+		machine->impl = new Machine(machine->owned_binary, converted);
 		*out_machine = machine;
 		return TKVM_OK;
 	} catch (const std::exception& e) {
@@ -201,6 +201,54 @@ int tkvm_machine_return_value(tkvm_machine_t* machine, long* out_value)
 		return set_error(e.what());
 	} catch (...) {
 		return set_error("tkvm_machine_return_value failed with unknown exception");
+	}
+}
+
+int tkvm_machine_address_of(tkvm_machine_t* machine, const char* symbol, uint64_t* out_addr)
+{
+	if (machine == nullptr || machine->impl == nullptr || symbol == nullptr || out_addr == nullptr) {
+		return set_error("Invalid argument in tkvm_machine_address_of", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		*out_addr = machine->impl->address_of(symbol);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_address_of failed with unknown exception");
+	}
+}
+
+int tkvm_machine_vmcall0(tkvm_machine_t* machine, const char* symbol)
+{
+	if (machine == nullptr || machine->impl == nullptr || symbol == nullptr) {
+		return set_error("Invalid argument in tkvm_machine_vmcall0", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		machine->impl->vmcall(symbol);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_vmcall0 failed with unknown exception");
+	}
+}
+
+int tkvm_machine_vmcall1_u64(tkvm_machine_t* machine, const char* symbol, uint64_t arg0)
+{
+	if (machine == nullptr || machine->impl == nullptr || symbol == nullptr) {
+		return set_error("Invalid argument in tkvm_machine_vmcall1_u64", TKVM_INVALID_ARGUMENT);
+	}
+
+	try {
+		machine->impl->vmcall(symbol, arg0);
+		return TKVM_OK;
+	} catch (const std::exception& e) {
+		return set_error(e.what());
+	} catch (...) {
+		return set_error("tkvm_machine_vmcall1_u64 failed with unknown exception");
 	}
 }
 
