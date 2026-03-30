@@ -4,34 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-static int load_file(const char* path, unsigned char** out_data, size_t* out_size)
-{
-	FILE* f = fopen(path, "rb");
-	if (f == NULL) return -1;
-	if (fseek(f, 0, SEEK_END) != 0) {
-		fclose(f);
-		return -1;
-	}
-	long size = ftell(f);
-	if (size <= 0 || fseek(f, 0, SEEK_SET) != 0) {
-		fclose(f);
-		return -1;
-	}
-	unsigned char* data = (unsigned char*)malloc((size_t)size);
-	if (data == NULL) {
-		fclose(f);
-		return -1;
-	}
-	if (fread(data, 1, (size_t)size, f) != (size_t)size) {
-		free(data);
-		fclose(f);
-		return -1;
-	}
-	fclose(f);
-	*out_data = data;
-	*out_size = (size_t)size;
-	return 0;
-}
+#include "c_runner_utils.h"
 
 static double elapsed_seconds(const struct timespec* start, const struct timespec* end)
 {
@@ -47,7 +20,7 @@ int main(int argc, char** argv)
 
 	unsigned char* binary = NULL;
 	size_t binary_size = 0;
-	if (load_file(filename, &binary, &binary_size) != 0) {
+	if (tkvm_load_file(filename, &binary, &binary_size) != 0) {
 		fprintf(stderr, "Failed to load guest file: %s\n", filename);
 		return 1;
 	}

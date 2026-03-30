@@ -39,6 +39,7 @@ target_link_libraries(simplekvm tinykvm)
 
 add_executable(simplekvm_c
 	src/simple_c.c
+	src/c_runner_utils.c
 )
 target_link_libraries(simplekvm_c tinykvm_capi)
 
@@ -54,11 +55,13 @@ target_link_libraries(pipekvm tinykvm)
 
 add_executable(capi_smoke
 	tests/c_api_smoke.c
+	src/c_runner_utils.c
 )
 target_link_libraries(capi_smoke tinykvm_capi)
 
 add_executable(tinytest_c
 	src/tinytest_c.c
+	src/c_runner_utils.c
 )
 target_link_libraries(tinytest_c tinykvm_capi)
 

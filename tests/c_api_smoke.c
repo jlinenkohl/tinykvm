@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../src/c_runner_utils.h"
 
 #ifndef TKVM_CAPI_VERSION_NUMBER
 #error "Missing TKVM_CAPI_VERSION_NUMBER"
@@ -20,37 +21,6 @@
 #error "Missing TKVM_CAPI_FEATURE_FORK_RESET"
 #endif
 
-static int load_file(const char* path, unsigned char** out_data, size_t* out_size)
-{
-	FILE* f = fopen(path, "rb");
-	if (f == NULL) {
-		return -1;
-	}
-	if (fseek(f, 0, SEEK_END) != 0) {
-		fclose(f);
-		return -1;
-	}
-	long size = ftell(f);
-	if (size <= 0 || fseek(f, 0, SEEK_SET) != 0) {
-		fclose(f);
-		return -1;
-	}
-	unsigned char* data = (unsigned char*)malloc((size_t)size);
-	if (data == NULL) {
-		fclose(f);
-		return -1;
-	}
-	if (fread(data, 1, (size_t)size, f) != (size_t)size) {
-		free(data);
-		fclose(f);
-		return -1;
-	}
-	fclose(f);
-	*out_data = data;
-	*out_size = (size_t)size;
-	return 0;
-}
-
 int main(int argc, char** argv)
 {
 	const char* guest = (argc > 1) ? argv[1] : "./guest/tests/glibc_test";
@@ -63,7 +33,7 @@ int main(int argc, char** argv)
 	uint64_t addr = 0;
 	int full_reset = 0;
 
-	if (load_file(guest, &binary, &binary_size) != 0) {
+	if (tkvm_load_file(guest, &binary, &binary_size) != 0) {
 		fprintf(stderr, "failed to load guest file: %s\n", guest);
 		return 1;
 	}

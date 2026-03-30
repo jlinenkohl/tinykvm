@@ -5,53 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "c_runner_utils.h"
+
 #define GUEST_MEMORY   0x10000000ULL
 #define GUEST_WORK_MEM (2U * 1024U * 1024U)
 #define GUEST_OK       0x31337L
-
-static int load_file(const char* path, unsigned char** out_data, size_t* out_size)
-{
-	FILE* f = fopen(path, "rb");
-	if (f == NULL) return -1;
-	if (fseek(f, 0, SEEK_END) != 0) {
-		fclose(f);
-		return -1;
-	}
-	long size = ftell(f);
-	if (size <= 0 || fseek(f, 0, SEEK_SET) != 0) {
-		fclose(f);
-		return -1;
-	}
-	unsigned char* data = (unsigned char*)malloc((size_t)size);
-	if (data == NULL) {
-		fclose(f);
-		return -1;
-	}
-	if (fread(data, 1, (size_t)size, f) != (size_t)size) {
-		free(data);
-		fclose(f);
-		return -1;
-	}
-	fclose(f);
-	*out_data = data;
-	*out_size = (size_t)size;
-	return 0;
-}
-
-static uint64_t host_compute_checksum(uint64_t rounds)
-{
-	uint64_t acc = 0x243f6a8885a308d3ULL;
-	uint64_t state = 0x9e3779b97f4a7c15ULL;
-	for (uint64_t i = 0; i < rounds; i++) {
-		state ^= state << 13;
-		state ^= state >> 7;
-		state ^= state << 17;
-		acc ^= state + 0x9e3779b97f4a7c15ULL + (acc << 6) + (acc >> 2);
-		acc = (acc << 9) | (acc >> (64 - 9));
-		acc += i * 0x100000001b3ULL;
-	}
-	return acc & 0x7FFFFFFFFFFFFFFFULL;
-}
 
 static int require_symbol(tkvm_machine_t* machine, const char* name)
 {
@@ -87,7 +45,7 @@ int main(int argc, char** argv)
 	int full_reset = 0;
 	long rv = 0;
 
-	if (load_file(guest, &binary, &binary_size) != 0) {
+	if (tkvm_load_file(guest, &binary, &binary_size) != 0) {
 		fprintf(stderr, "Failed to load guest file: %s\n", guest);
 		return 1;
 	}
@@ -181,7 +139,7 @@ int main(int argc, char** argv)
 			tkvm_machine_destroy(machine);
 			return 1;
 		}
-		if (tkvm_machine_return_value(machine, &rv) != TKVM_OK || (uint64_t)rv != host_compute_checksum(rounds)) {
+		if (tkvm_machine_return_value(machine, &rv) != TKVM_OK || (uint64_t)rv != tkvm_host_compute_checksum(rounds)) {
 			fprintf(stderr, "test_compute_checksum mismatch\n");
 			tkvm_machine_destroy(machine);
 			return 1;
