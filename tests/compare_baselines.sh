@@ -19,13 +19,29 @@ fi
 PREV="$(tail -n 2 "${HISTORY_FILE}" | head -n 1)"
 CURR="$(tail -n 1 "${HISTORY_FILE}")"
 
-IFS=$'\t' read -r PREV_TS PREV_PHASE PREV_COMMIT PREV_CAPI_STATUS PREV_CAPI_SEC PREV_FULL_STATUS PREV_FULL_SEC PREV_SIMPLE PREV_TINY <<< "${PREV}"
-IFS=$'\t' read -r CURR_TS CURR_PHASE CURR_COMMIT CURR_CAPI_STATUS CURR_CAPI_SEC CURR_FULL_STATUS CURR_FULL_SEC CURR_SIMPLE CURR_TINY <<< "${CURR}"
+parse_history_row() {
+	local row="$1"
+	local -a f=()
+	IFS=$'\t' read -r -a f <<< "${row}"
+	if [[ ${#f[@]} -ge 11 ]]; then
+		echo "${f[0]}|${f[1]}|${f[2]}|${f[3]}|${f[4]}|${f[5]}|${f[6]}|${f[7]}|${f[8]}|${f[9]}|${f[10]}"
+		return
+	fi
+	if [[ ${#f[@]} -ge 9 ]]; then
+		echo "${f[0]}|${f[1]}|${f[2]}|na|nan|${f[3]}|${f[4]}|${f[5]}|${f[6]}|${f[7]}|${f[8]}"
+		return
+	fi
+	echo "invalid||||||||||"
+}
+
+IFS='|' read -r PREV_TS PREV_PHASE PREV_COMMIT PREV_CONTRACT_STATUS PREV_CONTRACT_SEC PREV_CAPI_STATUS PREV_CAPI_SEC PREV_FULL_STATUS PREV_FULL_SEC PREV_SIMPLE PREV_TINY <<< "$(parse_history_row "${PREV}")"
+IFS='|' read -r CURR_TS CURR_PHASE CURR_COMMIT CURR_CONTRACT_STATUS CURR_CONTRACT_SEC CURR_CAPI_STATUS CURR_CAPI_SEC CURR_FULL_STATUS CURR_FULL_SEC CURR_SIMPLE CURR_TINY <<< "$(parse_history_row "${CURR}")"
 
 awk_delta() {
 	awk -v a="$1" -v b="$2" 'BEGIN { if (a=="nan" || b=="nan") print "nan"; else printf "%.3f", (b-a) }'
 }
 
+DELTA_CONTRACT="$(awk_delta "${PREV_CONTRACT_SEC}" "${CURR_CONTRACT_SEC}")"
 DELTA_CAPI="$(awk_delta "${PREV_CAPI_SEC}" "${CURR_CAPI_SEC}")"
 DELTA_FULL="$(awk_delta "${PREV_FULL_SEC}" "${CURR_FULL_SEC}")"
 DELTA_SIMPLE="$((CURR_SIMPLE - PREV_SIMPLE))"
@@ -35,9 +51,11 @@ echo "Comparing baseline checkpoints"
 echo "Previous: ${PREV_PHASE} (${PREV_COMMIT}) @ ${PREV_TS}"
 echo "Current : ${CURR_PHASE} (${CURR_COMMIT}) @ ${CURR_TS}"
 echo
+echo "contract_label_seconds: ${PREV_CONTRACT_SEC} -> ${CURR_CONTRACT_SEC} (delta ${DELTA_CONTRACT})"
 echo "c_api_label_seconds: ${PREV_CAPI_SEC} -> ${CURR_CAPI_SEC} (delta ${DELTA_CAPI})"
 echo "full_label_seconds : ${PREV_FULL_SEC} -> ${CURR_FULL_SEC} (delta ${DELTA_FULL})"
 echo "simplekvm_c_bytes  : ${PREV_SIMPLE} -> ${CURR_SIMPLE} (delta ${DELTA_SIMPLE})"
 echo "tinytest_c_bytes   : ${PREV_TINY} -> ${CURR_TINY} (delta ${DELTA_TINY})"
+echo "contract_status    : ${PREV_CONTRACT_STATUS} -> ${CURR_CONTRACT_STATUS}"
 echo "c_api_status       : ${PREV_CAPI_STATUS} -> ${CURR_CAPI_STATUS}"
 echo "full_status        : ${PREV_FULL_STATUS} -> ${CURR_FULL_STATUS}"

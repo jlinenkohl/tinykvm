@@ -81,3 +81,9 @@ add_test(
 	COMMAND ${CMAKE_SOURCE_DIR}/tests/evolution_smoke_c_only.sh
 )
 set_tests_properties(evolution_smoke_c_only PROPERTIES LABELS "smoke;c_api")
+
+add_test(
+	NAME c_api_contract_smoke_binary
+	COMMAND capi_contract_smoke
+)
+set_tests_properties(c_api_contract_smoke_binary PROPERTIES LABELS "smoke;c_api;contract")

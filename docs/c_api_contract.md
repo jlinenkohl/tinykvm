@@ -75,10 +75,16 @@ Quick c-api lane command:
 
 - `tests/run_c_api_lanes.sh`
 
+Quick contract lane command:
+
+- `tests/run_contract_lanes.sh`
+
 Baseline capture and trend comparison:
 
 - `tests/capture_baseline.sh <phase-label>`
 - `tests/compare_baselines.sh`
+
+Baseline history now includes contract-lane status/seconds in addition to c_api and full lanes.
 
 ## Contract Lock Checks (Phase 12A)
 

@@ -1,7 +1,8 @@
-timestamp_utc	phase	commit	c_api_status	c_api_seconds	full_status	full_seconds	simplekvm_c_bytes	tinytest_c_bytes
-20260330T003114Z	phase11a	2e460bf	pass	2.59	pass	12.00	8139304	8145040
-20260330T003347Z	phase11b	8cd68a9	pass	2.61	pass	11.64	8142280	8147736
-20260330T003652Z	phase11c	a99f09b	pass	2.60	pass	11.65	8147648	8148688
-20260330T003840Z	phase11d	99602f7	pass	2.62	pass	11.92	8147648	8148688
-20260330T004148Z	phase12a	f161388	pass	2.72	pass	11.25	8147648	8148688
-20260330T004354Z	phase12b	ca2a9e3	pass	2.70	pass	11.77	8147648	8148688
+timestamp_utc	phase	commit	contract_status	contract_seconds	c_api_status	c_api_seconds	full_status	full_seconds	simplekvm_c_bytes	tinytest_c_bytes
+20260330T003114Z	phase11a	2e460bf	na	nan	pass	2.59	pass	12.00	8139304	8145040
+20260330T003347Z	phase11b	8cd68a9	na	nan	pass	2.61	pass	11.64	8142280	8147736
+20260330T003652Z	phase11c	a99f09b	na	nan	pass	2.60	pass	11.65	8147648	8148688
+20260330T003840Z	phase11d	99602f7	na	nan	pass	2.62	pass	11.92	8147648	8148688
+20260330T004148Z	phase12a	f161388	na	nan	pass	2.72	pass	11.25	8147648	8148688
+20260330T004354Z	phase12b	ca2a9e3	na	nan	pass	2.70	pass	11.77	8147648	8148688
+20260330T004612Z	phase12c	d6968e8	pass	0.00	pass	2.71	pass	11.58	8147648	8148688

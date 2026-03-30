@@ -150,3 +150,13 @@ Goal:
 Status:
 
 - Completed in `tests/c_api_smoke.c` with added assertions for error-message and fork-state behavior.
+
+### P12C: Contract Lane Operationalization
+
+Goal:
+
+- Make contract checks a first-class CTest lane and track contract timing/status in baseline history.
+
+Status:
+
+- Completed with contract-labeled CTest entry, `tests/run_contract_lanes.sh`, and expanded baseline capture/compare schema.
