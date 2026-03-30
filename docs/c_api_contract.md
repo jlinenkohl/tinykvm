@@ -86,6 +86,20 @@ Baseline capture and trend comparison:
 
 Baseline history now includes contract-lane status/seconds in addition to c_api and full lanes.
 
+Optional drift guard thresholds can be applied during comparison:
+
+- `tests/compare_baselines.sh --warn-capi 0.10 --warn-full 0.20`
+- `tests/compare_baselines.sh --fail-contract 0.05 --fail-capi 0.20 --fail-full 0.50`
+
+Equivalent environment variables are supported:
+
+- `TKVM_BASELINE_WARN_CONTRACT_SEC`
+- `TKVM_BASELINE_WARN_CAPI_SEC`
+- `TKVM_BASELINE_WARN_FULL_SEC`
+- `TKVM_BASELINE_FAIL_CONTRACT_SEC`
+- `TKVM_BASELINE_FAIL_CAPI_SEC`
+- `TKVM_BASELINE_FAIL_FULL_SEC`
+
 ## Contract Lock Checks (Phase 12A)
 
 To prevent accidental contract drift in public macros/enums, the smoke lanes now execute:

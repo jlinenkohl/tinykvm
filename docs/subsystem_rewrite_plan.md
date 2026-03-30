@@ -160,3 +160,13 @@ Goal:
 Status:
 
 - Completed with contract-labeled CTest entry, `tests/run_contract_lanes.sh`, and expanded baseline capture/compare schema.
+
+### P12D: Baseline Drift Threshold Gates
+
+Goal:
+
+- Add warn/fail threshold policies for contract/c_api/full lane time regressions.
+
+Status:
+
+- Completed in `tests/compare_baselines.sh` with CLI and environment-variable threshold controls.
