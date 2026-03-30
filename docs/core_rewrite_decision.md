@@ -26,7 +26,11 @@ Begin selective core rewrites only when at least one of the following is true:
 - [x] At least two production-like C consumers are running exclusively through `c_api.h`.
 - [x] C API contracts are versioned and documented.
 - [x] Negative-path and timeout/error behavior are covered in smoke tests.
-- [ ] A subsystem-by-subsystem replacement plan exists with rollback points.
+- [x] A subsystem-by-subsystem replacement plan exists with rollback points.
+
+Plan reference:
+
+- `docs/subsystem_rewrite_plan.md`
 
 ## Suggested First Rewrite Candidates (if triggered)
 
