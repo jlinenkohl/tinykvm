@@ -212,3 +212,23 @@ Focus shifts from tooling expansion to evidence-based component quality/correctn
 Reference status and plan document:
 
 - `docs/rewrite_program_status.md`
+
+### P14A: API Boundary + Lifecycle Audit
+
+Goal:
+
+- Score correctness/quality/risk for C API boundary and machine lifecycle components and record decision outcomes.
+
+Status:
+
+- Completed in `docs/component_audit_phase14a.md`.
+
+### P14B: Memory Subsystem Audit
+
+Goal:
+
+- Apply the same audit rubric to memory, memory bank, and page streaming internals.
+
+Status:
+
+- Planned.
