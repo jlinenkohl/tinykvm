@@ -45,6 +45,13 @@ if ! grep -q "Return value: 201527" <<<"${simple_c_output}"; then
 	exit 1
 fi
 
+tinytest_c_output="$(./build/tinytest_c ./guest/tests/glibc_test)"
+printf "%s\n" "${tinytest_c_output}"
+if ! grep -q "Nice! C API tests passed." <<<"${tinytest_c_output}"; then
+	echo "tinytest_c did not report success"
+	exit 1
+fi
+
 set +e
 compute_output="$(./guest/tests/glibc_compute_test)"
 compute_status=$?

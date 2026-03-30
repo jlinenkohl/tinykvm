@@ -57,6 +57,11 @@ add_executable(capi_smoke
 )
 target_link_libraries(capi_smoke tinykvm_capi)
 
+add_executable(tinytest_c
+	src/tinytest_c.c
+)
+target_link_libraries(tinytest_c tinykvm_capi)
+
 add_test(
 	NAME evolution_smoke
 	COMMAND ${CMAKE_SOURCE_DIR}/tests/evolution_smoke.sh
