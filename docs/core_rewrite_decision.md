@@ -10,7 +10,8 @@ Rationale:
 
 - Existing C API now covers lifecycle, setup, execution, vmcalls, symbol lookup, guest memory copy, fork, reset, and typed errors.
 - Non-interactive smoke and CTest are stable.
-- A real C consumer (`simplekvm_c`) is now integrated in the default smoke path.
+- Two production-like C consumers are integrated and continuously exercised (`simplekvm_c`, `tinytest_c`).
+- A dedicated c-api-only lane exists (`evolution_smoke_c_only`).
 
 ## Rewrite Triggers
 
@@ -22,10 +23,10 @@ Begin selective core rewrites only when at least one of the following is true:
 
 ## Minimum Readiness Before Rewriting
 
-- At least two production-like C consumers are running exclusively through `c_api.h`.
-- C API contracts are versioned and documented.
-- Negative-path and timeout/error behavior are covered in smoke tests.
-- A subsystem-by-subsystem replacement plan exists with rollback points.
+- [x] At least two production-like C consumers are running exclusively through `c_api.h`.
+- [x] C API contracts are versioned and documented.
+- [x] Negative-path and timeout/error behavior are covered in smoke tests.
+- [ ] A subsystem-by-subsystem replacement plan exists with rollback points.
 
 ## Suggested First Rewrite Candidates (if triggered)
 

@@ -58,3 +58,19 @@ Primary error classes:
 - Existing C++ internals are not exposed directly when equivalent behavior can be composed from current C API calls.
 - Every newly added entry point must be exercised in `tests/c_api_smoke.c` before adoption in higher-level tools.
 - If an API is specific to one temporary migration path, prefer keeping it out of the public header until a second consumer needs it.
+
+## Consumer Coverage (Phase 10)
+
+Current production-like C consumers:
+
+- `src/simple_c.c`
+- `src/tinytest_c.c`
+
+Current smoke lanes:
+
+- Full lane: `tests/evolution_smoke.sh`
+- C-only lane: `tests/evolution_smoke_c_only.sh`
+
+Quick c-api lane command:
+
+- `tests/run_c_api_lanes.sh`
