@@ -91,3 +91,11 @@ This check verifies:
 - version-number composition macro consistency
 - feature-flag presence and expected values
 - stable values for public error and snapshot enums
+
+## Behavioral Drift Checks (Phase 12B)
+
+`tests/c_api_smoke.c` now also locks key runtime contract behavior by asserting:
+
+- `tkvm_last_error()` is non-empty after representative failures
+- symbol lookup/vmcall missing-symbol failures surface expected error text
+- invalid-state transitions remain enforced for fork-before-CoW and fork-from-forked

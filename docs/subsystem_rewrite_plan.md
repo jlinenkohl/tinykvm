@@ -140,3 +140,13 @@ Goal:
 Status:
 
 - Completed via `capi_contract_smoke`, integrated into full and C-only smoke lanes.
+
+### P12B: Runtime Behavior Drift Lock
+
+Goal:
+
+- Add explicit checks for `tkvm_last_error` content and invalid-state transitions in C API smoke.
+
+Status:
+
+- Completed in `tests/c_api_smoke.c` with added assertions for error-message and fork-state behavior.

@@ -21,6 +21,20 @@
 #error "Missing TKVM_CAPI_FEATURE_FORK_RESET"
 #endif
 
+static int require_last_error_contains(const char* needle, const char* where)
+{
+	const char* err = tkvm_last_error();
+	if (err == NULL || err[0] == '\0') {
+		fprintf(stderr, "expected non-empty tkvm_last_error at %s\n", where);
+		return -1;
+	}
+	if (needle != NULL && strstr(err, needle) == NULL) {
+		fprintf(stderr, "expected tkvm_last_error to contain '%s' at %s, got: %s\n", needle, where, err);
+		return -1;
+	}
+	return 0;
+}
+
 int main(int argc, char** argv)
 {
 	const char* guest = (argc > 1) ? argv[1] : "./guest/tests/glibc_test";
@@ -49,6 +63,10 @@ int main(int argc, char** argv)
 	}
 	if (tkvm_machine_create(NULL, binary_size, &opts, &machine) != TKVM_INVALID_ARGUMENT) {
 		fprintf(stderr, "expected invalid-argument from create(NULL, ...), got: %s\n", tkvm_last_error());
+		free(binary);
+		return 1;
+	}
+	if (require_last_error_contains("Invalid arguments", "create(NULL)") != 0) {
 		free(binary);
 		return 1;
 	}
@@ -169,13 +187,25 @@ int main(int argc, char** argv)
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
+	if (require_last_error_contains("Symbol not found", "address_of(missing)") != 0) {
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
 	if (tkvm_machine_vmcall0(machine, "symbol_that_does_not_exist") != TKVM_ERR_SYMBOL_NOT_FOUND) {
 		fprintf(stderr, "expected symbol-not-found from vmcall0, got: %s\n", tkvm_last_error());
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
+	if (require_last_error_contains("Symbol not found", "vmcall0(missing)") != 0) {
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
 	if (tkvm_machine_timed_vmcall0(machine, "test_loop", 1.0f) != TKVM_ERR_TIMEOUT) {
 		fprintf(stderr, "expected timeout from timed_vmcall0(test_loop), got: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
+	if (require_last_error_contains(NULL, "timed_vmcall0(timeout)") != 0) {
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
@@ -268,6 +298,10 @@ int main(int argc, char** argv)
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
+	if (require_last_error_contains("not prepared", "fork-before-cow") != 0) {
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
 
 	if (tkvm_machine_prepare_copy_on_write(machine, 65536) != TKVM_OK) {
 		fprintf(stderr, "tkvm_machine_prepare_copy_on_write failed: %s\n", tkvm_last_error());
@@ -278,6 +312,23 @@ int main(int argc, char** argv)
 		fprintf(stderr, "tkvm_machine_fork failed: %s\n", tkvm_last_error());
 		tkvm_machine_destroy(machine);
 		return 1;
+	}
+	{
+		tkvm_machine_t* nested = NULL;
+		if (tkvm_machine_fork(forked, &opts, &nested) != TKVM_ERR_INVALID_STATE) {
+			fprintf(stderr, "expected invalid-state from fork(forked), got: %s\n", tkvm_last_error());
+			tkvm_machine_destroy(forked);
+			tkvm_machine_destroy(machine);
+			return 1;
+		}
+		if (require_last_error_contains("prepared", "fork-from-forked") != 0) {
+			tkvm_machine_destroy(forked);
+			tkvm_machine_destroy(machine);
+			return 1;
+		}
+		if (nested != NULL) {
+			tkvm_machine_destroy(nested);
+		}
 	}
 	if (tkvm_machine_vmcall0(forked, "test_return") != TKVM_OK) {
 		fprintf(stderr, "forked vmcall failed: %s\n", tkvm_last_error());
