@@ -212,6 +212,7 @@ Focus shifts from tooling expansion to evidence-based component quality/correctn
 Reference status and plan document:
 
 - `docs/rewrite_program_status.md`
+- `docs/deviation_provenance_log.md`
 
 ### P14A: API Boundary + Lifecycle Audit
 
@@ -232,6 +233,8 @@ Goal:
 Status:
 
 - Completed in `docs/component_audit_phase14b.md`.
+- Catch2 unit-test gap addressed in this branch via auto-init in `tests/run_unit_tests.sh`.
+- Memory-focused unit run now reproducible; `test_mmap` remains failing and is tracked as pre-14C evidence.
 
 ### P14C: High-Risk Path Audit
 

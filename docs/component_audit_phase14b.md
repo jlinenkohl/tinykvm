@@ -146,6 +146,27 @@ Decision:
 2. Current branch uses stronger contract and lane gating than upstream vanilla baseline.
 3. Current audit branch baseline gate remains passing, supporting stability of current memory behavior under existing smoke workloads.
 
+## Memory-Focused Unit Coverage Status
+
+Catch2 gap status: closed in this branch.
+
+Changes made:
+
+1. tests/run_unit_tests.sh now auto-initializes tests/Catch2 submodule instead of skipping.
+2. tests/unit/elf.cpp no longer depends on get_current_dir_name, enabling successful unit-target compilation in this environment.
+
+Memory-focused unit run executed:
+
+- Command: tests/run_unit_tests.sh -R "test_mmap|test_reset|test_fork|test_remote|test_timeout"
+- Result: 4 passed, 1 failed.
+  - Passed: test_fork, test_remote, test_reset, test_timeout
+  - Failed: test_mmap
+
+Interpretation:
+
+- Coverage gap for memory-adjacent suites is now actionable and reproducible.
+- test_mmap failure is a concrete correctness signal to carry into Phase14C planning.
+
 ## Risk Register (Memory)
 
 1. Large vMemory responsibility surface can amplify regression blast radius.

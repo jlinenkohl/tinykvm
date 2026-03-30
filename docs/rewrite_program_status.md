@@ -113,6 +113,14 @@ Current recommendation remains selective and evidence-driven:
 
 Triggers are tracked in docs/core_rewrite_decision.md.
 
+## Deviation Provenance Policy
+
+Notable failures/gaps are now tracked with explicit provenance classification to avoid chasing preexisting upstream behavior as if it were newly introduced.
+
+Reference log:
+
+- docs/deviation_provenance_log.md
+
 ## Forward Plan (Phase 14)
 
 ### Goal
