@@ -170,3 +170,13 @@ Goal:
 Status:
 
 - Completed in `tests/compare_baselines.sh` with CLI and environment-variable threshold controls.
+
+### P12E: Baseline Gate Wrapper
+
+Goal:
+
+- Provide a one-command baseline capture + thresholded compare workflow for local and CI use.
+
+Status:
+
+- Completed via `tests/run_baseline_gate.sh` with default thresholds and override flags.

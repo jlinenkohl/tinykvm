@@ -83,6 +83,7 @@ Baseline capture and trend comparison:
 
 - `tests/capture_baseline.sh <phase-label>`
 - `tests/compare_baselines.sh`
+- `tests/run_baseline_gate.sh <phase-label>`
 
 Baseline history now includes contract-lane status/seconds in addition to c_api and full lanes.
 
@@ -99,6 +100,13 @@ Equivalent environment variables are supported:
 - `TKVM_BASELINE_FAIL_CONTRACT_SEC`
 - `TKVM_BASELINE_FAIL_CAPI_SEC`
 - `TKVM_BASELINE_FAIL_FULL_SEC`
+
+`tests/run_baseline_gate.sh` applies default thresholds for local/CI consistency:
+
+- warn: contract `0.01`, c_api `0.05`, full `0.30`
+- fail: contract `0.05`, c_api `0.25`, full `1.00`
+
+All thresholds can be overridden by CLI flags or the same environment variables.
 
 ## Contract Lock Checks (Phase 12A)
 
