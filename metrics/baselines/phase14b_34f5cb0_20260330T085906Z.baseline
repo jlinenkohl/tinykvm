@@ -1,0 +1,19 @@
+# tinykvm baseline snapshot
+phase=phase14b
+commit=34f5cb0
+timestamp_utc=20260330T085906Z
+
+contract_label_status=pass
+contract_label_seconds=0.00
+contract_label_exit_code=0
+
+c_api_label_status=pass
+c_api_label_seconds=2.77
+c_api_label_exit_code=0
+
+full_label_status=pass
+full_label_seconds=12.19
+full_label_exit_code=0
+
+simplekvm_c_bytes=8147648
+tinytest_c_bytes=8148688

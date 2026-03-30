@@ -231,4 +231,14 @@ Goal:
 
 Status:
 
+- Completed in `docs/component_audit_phase14b.md`.
+
+### P14C: High-Risk Path Audit
+
+Goal:
+
+- Evaluate vCPU run path and paging/exception-sensitive boundaries for keep/refactor/rewrite decisions.
+
+Status:
+
 - Planned.
