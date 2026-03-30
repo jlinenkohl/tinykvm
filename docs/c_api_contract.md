@@ -51,3 +51,10 @@ Primary error classes:
 
 - The smoke harness defaults to non-interactive execution.
 - To permit debug-oriented environment behavior, set `TKVM_ALLOW_DEBUG=1` when invoking `tests/evolution_smoke.sh`.
+
+## API Expansion Policy (Phase 9C)
+
+- New C API entry points are added only to unblock a concrete C consumer migration.
+- Existing C++ internals are not exposed directly when equivalent behavior can be composed from current C API calls.
+- Every newly added entry point must be exercised in `tests/c_api_smoke.c` before adoption in higher-level tools.
+- If an API is specific to one temporary migration path, prefer keeping it out of the public header until a second consumer needs it.
