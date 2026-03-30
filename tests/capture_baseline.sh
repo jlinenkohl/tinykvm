@@ -9,6 +9,7 @@ fi
 
 PHASE="$1"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${ROOT_DIR}"
 
 OUT_DIR="metrics/baselines"
@@ -19,33 +20,11 @@ TS_UTC="$(date -u +%Y%m%dT%H%M%SZ)"
 SNAPSHOT_FILE="${OUT_DIR}/${PHASE}_${COMMIT}_${TS_UTC}.baseline"
 HISTORY_FILE="${OUT_DIR}/history.tsv"
 
-run_lane() {
-	local label="$1"
-	local log_file
-	log_file="$(mktemp)"
-	local status="pass"
-	set +e
-	ctest --test-dir build -L "${label}" --output-on-failure > "${log_file}" 2>&1
-	local rc=$?
-	set -e
-	cat "${log_file}" >&2
-	if [[ ${rc} -ne 0 ]]; then
-		status="fail"
-	fi
-	local seconds
-	seconds="$(awk '/Total Test time \(real\) =/{print $(NF-1)}' "${log_file}" | tail -n1)"
-	if [[ -z "${seconds}" ]]; then
-		seconds="nan"
-	fi
-	rm -f "${log_file}"
-	echo "${status},${seconds},${rc}"
-}
-
 cmake -S . -B build
 cmake --build build -j --target capi_smoke simplekvm_c tinytest_c
 
-IFS=',' read -r CAPI_STATUS CAPI_SECONDS CAPI_RC < <(run_lane c_api)
-IFS=',' read -r FULL_STATUS FULL_SECONDS FULL_RC < <(run_lane full)
+IFS=',' read -r CAPI_STATUS CAPI_SECONDS CAPI_RC < <("${SCRIPT_DIR}/ctest_label.sh" c_api --metrics)
+IFS=',' read -r FULL_STATUS FULL_SECONDS FULL_RC < <("${SCRIPT_DIR}/ctest_label.sh" full --metrics)
 
 SIMPLEKVM_C_BYTES="$(stat -c%s build/simplekvm_c)"
 TINYTEST_C_BYTES="$(stat -c%s build/tinytest_c)"

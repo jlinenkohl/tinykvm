@@ -6,4 +6,4 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${ROOT_DIR}"
 
 cmake -S . -B build
-ctest --test-dir build -L c_api --output-on-failure
+"${SCRIPT_DIR}/ctest_label.sh" c_api

@@ -79,6 +79,10 @@ Candidate targets:
 
 - Non-critical adapters around diagnostics, runners, or support tooling.
 
+Progress:
+
+- Phase 11D introduced a shared CTest label adapter script and switched both lane execution and baseline capture tooling to consume it.
+
 Acceptance criteria:
 
 - No new required C API entry points unless demanded by two consumers.
