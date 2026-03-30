@@ -33,6 +33,18 @@ if ! grep -q "Return value: 201527" <<<"${simple_output}"; then
 	exit 1
 fi
 
+simple_c_output="$(./build/simplekvm_c ./guest/tests/glibc_test "Hello World!")"
+printf "%s\n" "${simple_c_output}"
+
+if ! grep -q "Hello World!" <<<"${simple_c_output}"; then
+	echo "simplekvm_c output missing greeting"
+	exit 1
+fi
+if ! grep -q "Return value: 201527" <<<"${simple_c_output}"; then
+	echo "simplekvm_c output missing expected return value 201527"
+	exit 1
+fi
+
 set +e
 compute_output="$(./guest/tests/glibc_compute_test)"
 compute_status=$?

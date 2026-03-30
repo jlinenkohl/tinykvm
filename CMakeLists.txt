@@ -37,6 +37,11 @@ add_executable(simplekvm
 )
 target_link_libraries(simplekvm tinykvm)
 
+add_executable(simplekvm_c
+	src/simple_c.c
+)
+target_link_libraries(simplekvm_c tinykvm_capi)
+
 add_executable(storagekvm
 	src/storage.cpp
 )
