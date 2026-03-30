@@ -207,21 +207,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	{
-		unsigned char outbuf[16];
-		unsigned char inbuf[16];
-		for (size_t i = 0; i < sizeof(outbuf); i++) outbuf[i] = (unsigned char)(0xA0 + i);
-		memset(inbuf, 0, sizeof(inbuf));
-		if (tkvm_machine_copy_to_guest(machine, (uint64_t)rv, outbuf, sizeof(outbuf)) != TKVM_OK) {
-			fprintf(stderr, "tkvm_machine_copy_to_guest failed: %s\n", tkvm_last_error());
-			tkvm_machine_destroy(machine);
-			return 1;
-		}
-		if (tkvm_machine_copy_from_guest(machine, inbuf, (uint64_t)rv, sizeof(inbuf)) != TKVM_OK) {
-			fprintf(stderr, "tkvm_machine_copy_from_guest failed: %s\n", tkvm_last_error());
-			tkvm_machine_destroy(machine);
-			return 1;
-		}
-		if (memcmp(outbuf, inbuf, sizeof(outbuf)) != 0) {
+		if (tkvm_guest_copy_roundtrip(machine, (uint64_t)rv, 16, 0xA0) != 0) {
 			fprintf(stderr, "copy roundtrip mismatch\n");
 			tkvm_machine_destroy(machine);
 			return 1;

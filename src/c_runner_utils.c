@@ -1,5 +1,6 @@
 #include "c_runner_utils.h"
 
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -49,4 +50,40 @@ uint64_t tkvm_host_compute_checksum(uint64_t rounds)
 		acc += i * 0x100000001b3ULL;
 	}
 	return acc & 0x7FFFFFFFFFFFFFFFULL;
+}
+
+int tkvm_guest_copy_roundtrip(tkvm_machine_t* machine, uint64_t guest_addr, size_t len, unsigned char seed)
+{
+	if (machine == NULL || guest_addr == 0 || len == 0) {
+		return -1;
+	}
+
+	unsigned char* outbuf = (unsigned char*)malloc(len);
+	unsigned char* inbuf = (unsigned char*)malloc(len);
+	if (outbuf == NULL || inbuf == NULL) {
+		free(outbuf);
+		free(inbuf);
+		return -1;
+	}
+
+	for (size_t i = 0; i < len; i++) {
+		outbuf[i] = (unsigned char)(seed + (unsigned char)i);
+	}
+	memset(inbuf, 0, len);
+
+	if (tkvm_machine_copy_to_guest(machine, guest_addr, outbuf, len) != TKVM_OK) {
+		free(outbuf);
+		free(inbuf);
+		return -1;
+	}
+	if (tkvm_machine_copy_from_guest(machine, inbuf, guest_addr, len) != TKVM_OK) {
+		free(outbuf);
+		free(inbuf);
+		return -1;
+	}
+
+	int ok = (memcmp(outbuf, inbuf, len) == 0) ? 0 : -1;
+	free(outbuf);
+	free(inbuf);
+	return ok;
 }

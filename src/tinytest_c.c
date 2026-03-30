@@ -117,6 +117,11 @@ int main(int argc, char** argv)
 		tkvm_machine_destroy(machine);
 		return 1;
 	}
+	if (tkvm_guest_copy_roundtrip(machine, (uint64_t)rv, 32, 0x70) != 0) {
+		fprintf(stderr, "guest copy roundtrip failed: %s\n", tkvm_last_error());
+		tkvm_machine_destroy(machine);
+		return 1;
+	}
 
 	{
 		const uint64_t args[] = {42};

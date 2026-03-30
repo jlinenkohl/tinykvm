@@ -60,6 +60,10 @@ Candidate targets:
 
 - Localized allocation/copy helpers without paging-core semantics.
 
+Progress:
+
+- Phase 11C extracted guest copy roundtrip validation into shared C helper code and reused it across `capi_smoke` and `tinytest_c`.
+
 Acceptance criteria:
 
 - `capi_smoke` and `tinytest_c` pass unchanged.
