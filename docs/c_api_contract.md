@@ -79,3 +79,15 @@ Baseline capture and trend comparison:
 
 - `tests/capture_baseline.sh <phase-label>`
 - `tests/compare_baselines.sh`
+
+## Contract Lock Checks (Phase 12A)
+
+To prevent accidental contract drift in public macros/enums, the smoke lanes now execute:
+
+- `build/capi_contract_smoke`
+
+This check verifies:
+
+- version-number composition macro consistency
+- feature-flag presence and expected values
+- stable values for public error and snapshot enums

@@ -59,6 +59,11 @@ add_executable(capi_smoke
 )
 target_link_libraries(capi_smoke tinykvm_capi)
 
+add_executable(capi_contract_smoke
+	tests/c_api_contract_smoke.c
+)
+target_link_libraries(capi_contract_smoke tinykvm_capi)
+
 add_executable(tinytest_c
 	src/tinytest_c.c
 	src/c_runner_utils.c

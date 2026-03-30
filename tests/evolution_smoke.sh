@@ -20,6 +20,7 @@ cmake --build build -j
 )
 
 ./build/capi_smoke
+./build/capi_contract_smoke
 
 simple_output="$(./build/simplekvm ./guest/tests/glibc_test "Hello World!")"
 printf "%s\n" "${simple_output}"

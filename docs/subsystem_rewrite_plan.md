@@ -126,3 +126,17 @@ This keeps each checkpoint named by phase and commit while allowing simple diff 
 - M1-M4 completed with green smoke lanes.
 - No unresolved behavior regressions.
 - Decision made whether to proceed toward deeper VM-core rewrites or keep core in C++ with C API front.
+
+## Phase 12 Scope (Post First Wave)
+
+Focus shifts from first-wave rewrites to contract hardening and operational reliability.
+
+### P12A: C API Contract Lock
+
+Goal:
+
+- Add explicit smoke validation for public C API macro/enum stability.
+
+Status:
+
+- Completed via `capi_contract_smoke`, integrated into full and C-only smoke lanes.

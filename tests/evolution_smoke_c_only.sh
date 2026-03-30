@@ -11,7 +11,7 @@ if [[ "${TKVM_ALLOW_DEBUG:-0}" != "1" ]]; then
 fi
 
 cmake -S . -B build
-cmake --build build -j --target capi_smoke simplekvm_c tinytest_c
+cmake --build build -j --target capi_smoke capi_contract_smoke simplekvm_c tinytest_c
 
 (
 	cd guest/tests
@@ -19,6 +19,7 @@ cmake --build build -j --target capi_smoke simplekvm_c tinytest_c
 )
 
 ./build/capi_smoke
+./build/capi_contract_smoke
 
 simple_c_output="$(./build/simplekvm_c ./guest/tests/glibc_test "Hello World!")"
 printf "%s\n" "${simple_c_output}"
