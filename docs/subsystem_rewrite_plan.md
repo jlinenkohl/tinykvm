@@ -194,3 +194,21 @@ Goal:
 Status:
 
 - Completed in `tests/run_baseline_gate.sh` with `--policy` and `--list-policies` support.
+
+### P13B/P13C: Stability Re-runs
+
+Goal:
+
+- Capture additional baseline-gated checkpoints to characterize run-to-run variance.
+
+Status:
+
+- Completed with `phase13b` and `phase13c` snapshots and no gate failures.
+
+## Phase 14 Scope
+
+Focus shifts from tooling expansion to evidence-based component quality/correctness evaluation and keep-or-rewrite decisions.
+
+Reference status and plan document:
+
+- `docs/rewrite_program_status.md`

@@ -1,0 +1,20 @@
+# tinykvm vanilla upstream baseline snapshot
+phase=vanilla_master
+commit=a6a044c
+timestamp_utc=20260330T083320Z
+
+source_repo=origin/master
+source_desc=Fix issue with split_all_hugepages_during_loading due to strict pagetable walk
+
+top_level_ctest_registered_tests=0
+unit_ctest_total=8
+unit_ctest_passed=6
+unit_ctest_failed=2
+unit_ctest_failed_names=test_elf,test_mmap
+
+integration_tinytest_glibc_status=pass
+
+simplekvm_bytes=9187568
+tinytest_bytes=9235928
+storagekvm_bytes=9121888
+pipekvm_bytes=8901104
