@@ -180,3 +180,17 @@ Goal:
 Status:
 
 - Completed via `tests/run_baseline_gate.sh` with default thresholds and override flags.
+
+## Phase 13 Scope
+
+Focus shifts to policy-driven operational guardrails and CI repeatability.
+
+### P13A: Baseline Policy Profiles
+
+Goal:
+
+- Add named threshold profiles to baseline gating for consistent strict/balanced/lenient workflows.
+
+Status:
+
+- Completed in `tests/run_baseline_gate.sh` with `--policy` and `--list-policies` support.

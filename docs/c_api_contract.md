@@ -108,6 +108,14 @@ Equivalent environment variables are supported:
 
 All thresholds can be overridden by CLI flags or the same environment variables.
 
+Policy profiles are also supported:
+
+- `--policy strict`
+- `--policy balanced` (default)
+- `--policy lenient`
+
+Use `tests/run_baseline_gate.sh <phase-label> --list-policies` to print policy thresholds.
+
 ## Contract Lock Checks (Phase 12A)
 
 To prevent accidental contract drift in public macros/enums, the smoke lanes now execute:
