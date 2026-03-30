@@ -66,3 +66,8 @@ add_test(
 	NAME evolution_smoke
 	COMMAND ${CMAKE_SOURCE_DIR}/tests/evolution_smoke.sh
 )
+
+add_test(
+	NAME evolution_smoke_c_only
+	COMMAND ${CMAKE_SOURCE_DIR}/tests/evolution_smoke_c_only.sh
+)
