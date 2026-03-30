@@ -99,6 +99,20 @@ Rollback point:
 - Binary size trend for C consumers
 - Any change in crash/exception incidence in `tinytest_c`
 
+## Baseline Workflow
+
+Use checkpointed, self-describing baseline snapshots:
+
+- Capture: `tests/capture_baseline.sh <phase-label>`
+- Compare latest two: `tests/compare_baselines.sh`
+
+Produced files:
+
+- Per-checkpoint snapshot: `metrics/baselines/<phase>_<commit>_<timestamp>.baseline`
+- Append-only history table: `metrics/baselines/history.tsv`
+
+This keeps each checkpoint named by phase and commit while allowing simple diff and scalar comparison without JSON tooling.
+
 ## Exit Criteria for First Wave
 
 - M1-M4 completed with green smoke lanes.

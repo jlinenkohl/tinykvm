@@ -74,3 +74,8 @@ Current smoke lanes:
 Quick c-api lane command:
 
 - `tests/run_c_api_lanes.sh`
+
+Baseline capture and trend comparison:
+
+- `tests/capture_baseline.sh <phase-label>`
+- `tests/compare_baselines.sh`
