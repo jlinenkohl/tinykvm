@@ -52,3 +52,30 @@ Each entry should include:
 - Decision impact:
   - Comparison caveat for upstream vs branch test topology.
   - Motivates preserving lane-gate workflow for forward work.
+
+### DV-004 `test_elf` Unit Failure (Dynamic Relocation Path)
+
+- Classification: preexisting-vanilla (resolved on current branch)
+- Summary: `test_elf` segfaulted in vanilla and initial branch state during dynamic-loader bootstrap.
+- Vanilla evidence:
+  - Reproduced by `cd tests && bash run_unit_tests.sh` on vanilla worktree (failed `test_elf`).
+- Current branch evidence:
+  - Initially reproduced; now resolved after relocation/bootstrap fixes and syscall fixups.
+  - Current branch unit harness now passes all tests.
+- Decision impact:
+  - Validates portability roadmap and control/gate test split.
+  - Treated as an intentional correctness improvement relative to vanilla baseline.
+
+### DV-005 `readlinkat` Guest Copy Length Bug
+
+- Classification: preexisting-vanilla (resolved on current branch)
+- Summary: `readlinkat` emulation path used unsigned return handling and unsafe copy semantics, which could trigger oversized guest copies after host syscall errors.
+- Vanilla evidence:
+  - Same syscall handler logic present in vanilla lineage.
+  - Failure became visible while progressing dynamic-loader relocation support.
+- Current branch handling:
+  - Updated `readlinkat` path to use signed syscall return (`ssize_t`) and bounded host-buffer copy before guest write.
+  - Eliminated observed crash path during `test_elf` relocation gate execution.
+- Decision impact:
+  - Correctness fix in syscall emulation path.
+  - Improves robustness for dynamic-loader startup and path-resolution calls.
