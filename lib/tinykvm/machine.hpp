@@ -349,6 +349,7 @@ private:
 	bool  m_verbose_system_calls = false;
 	bool  m_verbose_mmap_syscalls = false;
 	bool  m_verbose_thread_syscalls = false;
+	MachineOptions::IRelativeMode m_irelative_mode = MachineOptions::IRelativeMode::BestEffort;
 	void* m_userdata = nullptr;
 
 	std::string_view m_binary;

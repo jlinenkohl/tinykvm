@@ -374,10 +374,22 @@ bool Machine::relocate_section(const char* section_name, const char* sym_section
 			if (rtype == R_X86_64_RELATIVE) {
 				*(address_t*) memory.safely_at(addr, sizeof(address_t)) = this->m_image_base + rela_addr[i].r_addend;
 			} else {
-				/* Best-effort bootstrap handling for IFUNC relocations.
-				   A full implementation must evaluate the resolver and write
-				   its return value. */
-				*(address_t*) memory.safely_at(addr, sizeof(address_t)) = this->m_image_base + rela_addr[i].r_addend;
+				switch (this->m_irelative_mode)
+				{
+					case MachineOptions::IRelativeMode::StrictFail:
+						throw MachineException(
+							"R_X86_64_IRELATIVE encountered in strict mode", rela_addr[i].r_offset);
+					case MachineOptions::IRelativeMode::BestEffort:
+						/* Bootstrap fallback for IFUNC relocations.
+						   Full correctness requires executing the guest resolver and
+						   storing its return value. */
+						*(address_t*) memory.safely_at(addr, sizeof(address_t)) = this->m_image_base + rela_addr[i].r_addend;
+						break;
+					case MachineOptions::IRelativeMode::ExecuteResolver:
+						throw MachineException(
+							"R_X86_64_IRELATIVE execute-resolver mode not implemented yet",
+							rela_addr[i].r_offset);
+				}
 			}
 		} else {
 			if constexpr (VERBOSE_LOADER) {

@@ -34,6 +34,28 @@ static uint64_t host_compute_checksum(uint64_t rounds)
 	return acc & 0x7FFFFFFFFFFFFFFFULL;
 }
 
+static tinykvm::MachineOptions::IRelativeMode parse_irelative_mode_arg(const char* arg)
+{
+	constexpr const char* prefix = "--irelative-mode=";
+	if (strncmp(arg, prefix, strlen(prefix)) != 0) {
+		return tinykvm::MachineOptions::IRelativeMode::BestEffort;
+	}
+	const char* mode = arg + strlen(prefix);
+	if (strcmp(mode, "best-effort") == 0) {
+		return tinykvm::MachineOptions::IRelativeMode::BestEffort;
+	}
+	if (strcmp(mode, "strict-fail") == 0) {
+		return tinykvm::MachineOptions::IRelativeMode::StrictFail;
+	}
+	if (strcmp(mode, "execute-resolver") == 0) {
+		return tinykvm::MachineOptions::IRelativeMode::ExecuteResolver;
+	}
+	fprintf(stderr,
+		"Invalid --irelative-mode value '%s' (expected best-effort|strict-fail|execute-resolver)\n",
+		mode);
+	exit(1);
+}
+
 static void verify_exists(tinykvm::Machine& vm, const char* name)
 {
 	if (vm.address_of(name) == 0x0) {
@@ -49,7 +71,14 @@ int main(int argc, char** argv)
 		exit(1);
 	}
 	std::string filename = argv[1];
+	auto irelative_mode = tinykvm::MachineOptions::IRelativeMode::BestEffort;
 	const auto binary = load_file(filename);
+
+	for (int i = 2; i < argc; i++) {
+		if (strncmp(argv[i], "--irelative-mode=", strlen("--irelative-mode=")) == 0) {
+			irelative_mode = parse_irelative_mode_arg(argv[i]);
+		}
+	}
 
 	tinykvm::Machine::init();
 
@@ -58,6 +87,7 @@ int main(int argc, char** argv)
 		.max_mem = GUEST_MEMORY,
 		.max_cow_mem = GUEST_WORK_MEM,
 		.verbose_loader = false,
+		.irelative_mode = irelative_mode,
 	};
 	tinykvm::Machine master_vm {binary, options};
 	master_vm.setup_linux(

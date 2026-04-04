@@ -22,6 +22,28 @@ static uint64_t verify_exists(tinykvm::Machine& vm, const char* name)
 inline timespec time_now();
 inline long nanodiff(timespec start_time, timespec end_time);
 
+static tinykvm::MachineOptions::IRelativeMode parse_irelative_mode_arg(const char* arg)
+{
+	constexpr const char* prefix = "--irelative-mode=";
+	if (strncmp(arg, prefix, strlen(prefix)) != 0) {
+		return tinykvm::MachineOptions::IRelativeMode::BestEffort;
+	}
+	const char* mode = arg + strlen(prefix);
+	if (strcmp(mode, "best-effort") == 0) {
+		return tinykvm::MachineOptions::IRelativeMode::BestEffort;
+	}
+	if (strcmp(mode, "strict-fail") == 0) {
+		return tinykvm::MachineOptions::IRelativeMode::StrictFail;
+	}
+	if (strcmp(mode, "execute-resolver") == 0) {
+		return tinykvm::MachineOptions::IRelativeMode::ExecuteResolver;
+	}
+	fprintf(stderr,
+		"Invalid --irelative-mode value '%s' (expected best-effort|strict-fail|execute-resolver)\n",
+		mode);
+	exit(1);
+}
+
 int main(int argc, char** argv)
 {
 	if (argc < 2) {
@@ -31,6 +53,7 @@ int main(int argc, char** argv)
 	std::vector<uint8_t> binary;
 	std::vector<std::string> args;
 	std::string filename = argv[1];
+	auto irelative_mode = tinykvm::MachineOptions::IRelativeMode::BestEffort;
 	binary = load_file(filename);
 
 	const tinykvm::DynamicElf dyn_elf = tinykvm::is_dynamic_elf(
@@ -44,6 +67,10 @@ int main(int argc, char** argv)
 
 	for (int i = 1; i < argc; i++)
 	{
+		if (strncmp(argv[i], "--irelative-mode=", strlen("--irelative-mode=")) == 0) {
+			irelative_mode = parse_irelative_mode_arg(argv[i]);
+			continue;
+		}
 		args.push_back(argv[i]);
 	}
 
@@ -86,6 +113,7 @@ int main(int argc, char** argv)
 		.hugepages = (getenv("HUGE") != nullptr),
 		.relocate_fixed_mmap = (getenv("GO") == nullptr),
 		.executable_heap = dyn_elf.is_dynamic,
+		.irelative_mode = irelative_mode,
 	};
 	tinykvm::Machine master_vm {binary, options};
 	//master_vm.print_pagetables();
