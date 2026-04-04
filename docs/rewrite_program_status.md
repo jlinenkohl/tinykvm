@@ -1,4 +1,4 @@
-# TinyKVM Rewrite Program Status (2026-03-30)
+# TinyKVM Rewrite Program Status (2026-04-04)
 
 ## Executive Summary
 
@@ -21,6 +21,8 @@ Canonical companion docs:
 
 | Date | Iteration/Phase | What Changed | Validation Evidence | Baseline Checkpoint | Provenance Update | Docs Updated | Next Action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-04-04 | Upstream Submission Pass (U-series) - Wave 2 | Confirmed U5/U2 merged upstream and moved remaining stacked set (U3/U4/U6) from draft to ready-for-review | No new code changes in this step; PR state transition only | no new baseline artifact captured in this pass | No new provenance class; this is upstream workflow progression | working status | Monitor review feedback on U3/U4/U6; apply minimal follow-up patches per PR as requested |
+| 2026-04-02 | Upstream Submission Pass (U-series) | Opened/split upstream PR set U1-U6, added stack dependencies and test evidence, moved U5/U2 to ready-for-review, kept relocation stack draft | Local verification before finalization: unit harness 8/8 pass; integration tinytest (`glibc_test`) pass | no new baseline artifact captured in this pass | No new provenance class; this is packaging/submission of known correctness improvements | working status + PR bodies | Monitor upstream feedback; undraft U3/U4/U6 only after dependency path is accepted or reviewer asks for consolidation |
 | 2026-03-30 | Phase14B2 | Closed Catch2 gap in harness and portability fix in unit ELF test | Memory-focused unit subset run: 4 pass, 1 fail (`test_mmap`) | `phase14b2` gate snapshot captured | DV-001, DV-002, DV-003 recorded as preexisting-vanilla | status, plan, provenance log | Begin Phase14C high-risk path audit |
 | 2026-03-30 | Vanilla Full-Suite Local Validation | Recreated vanilla worktree at `origin/master` (`a6a044c`) and executed CI-equivalent matrix + unit harness + integration tinytest | Matrix: `g++/clang++ x Debug/Release` configure/build/ctest all exit 0; unit harness: 8 total, 6 pass, 2 fail (`test_elf`, `test_mmap`); integration tinytest (`glibc_test`) pass on both vanilla and current branch | Evidence captured in terminal logs and `/tmp/vanilla_matrix_20260330T135641.log` | Confirms DV-002 remains preexisting-vanilla and reproducible | working status | Add dedicated vanilla parity lane wrapper and run it at each phase checkpoint |
 | 2026-03-31 | ELF Portability Test Split | Split ELF unit coverage into explicit no-relocation path (`[ELF][no-reloc]`) and relocation support gate (`[ELF][reloc]`) | `test_elf` now reports 3 cases: 2 pass, 1 fail (SIGSEGV in dynamic relocation support case) | not captured yet | Relocation-gate failure remains preexisting-vanilla candidate pending full relocation support matrix | working status | Implement missing dynamic-loader relocation support and re-run gate |
@@ -62,6 +64,103 @@ Goal: run unmodified dynamic ELF binaries across host environments by making loa
 3. Enable/evaluate `.rela.plt` relocation pass where required for bootstrap correctness.
 4. Re-run `[ELF][reloc]` gate and record pass/fail plus relocation-type evidence.
 5. Keep `[ELF][no-reloc]` as a stable control test for non-dynamic loader regressions.
+
+## Upstream Candidate Queue (Non-C-ABI Specific)
+
+These are candidate fixes suitable for proposing back to upstream because they are generic correctness/portability improvements rather than C ABI program-specific additions.
+
+### Granular PR Queue (One Fix Per PR)
+
+1. PR-U1: Unit harness auto-initializes Catch2 submodule.
+  - Files: `tests/run_unit_tests.sh`
+  - Dependency: none
+  - Risk: low
+  - Validation: `cd tests && bash run_unit_tests.sh -R test_basic`
+2. PR-U2: `readlinkat` guest-copy correctness fix (signed length + bounded copy path).
+  - Files: `lib/tinykvm/linux/system_calls.cpp`
+  - Dependency: none
+  - Risk: medium
+  - Validation: `cd tests && bash run_unit_tests.sh -R test_elf`
+3. PR-U3: ELF relocation correctness fix for `R_X86_64_RELATIVE` addend semantics.
+  - Files: `lib/tinykvm/machine_elf.cpp`
+  - Dependency: none
+  - Risk: medium
+  - Validation: `cd tests && bash run_unit_tests.sh -R test_elf`
+4. PR-U4: Bootstrap RELR relocation support (`.relr.dyn`) and declaration wiring.
+  - Files: `lib/tinykvm/machine_elf.cpp`, `lib/tinykvm/machine.hpp`
+  - Dependency: PR-U3 recommended first
+  - Risk: medium-high
+  - Validation: `cd tests && bash run_unit_tests.sh -R test_elf`
+5. PR-U5: mmap unit semantics hardening (remove non-portable address-reuse assumptions).
+  - Files: `tests/unit/mmap.cpp`
+  - Dependency: none
+  - Risk: low
+  - Validation: `cd tests && bash run_unit_tests.sh -R test_mmap`
+6. PR-U6: ELF test split into no-reloc control and reloc capability gate.
+  - Files: `tests/unit/elf.cpp`
+  - Dependency: stacked on runtime relocation fixes for green gate behavior (PR-U2, PR-U3, PR-U4)
+  - Risk: low
+  - Validation: `cd tests && bash run_unit_tests.sh -R test_elf`
+
+### Stacked Relationship (Important)
+
+1. PR-U1 and PR-U5 are independent and can merge any time.
+2. PR-U2 is a runtime correctness fix that should merge before or with ELF relocation changes.
+3. PR-U3 and PR-U4 are stacked relocation-runtime changes and should be reviewed/merged in order.
+4. PR-U6 is test-structure work but functionally tied to the relocation path; as a strict green lane it is best merged after PR-U2/U3/U4.
+
+PR body dependency lines (copy into PR description):
+
+1. PR-U1: `Depends on: none`
+2. PR-U5: `Depends on: none`
+3. PR-U2: `Depends on: none` (but should land before ELF relocation stack)
+4. PR-U3: `Depends on: PR-U2 (recommended)`
+5. PR-U4: `Depends on: PR-U3`
+6. PR-U6: `Depends on: PR-U2, PR-U3, PR-U4` (for green `test_elf` gate)
+
+Practical merge strategy:
+
+1. Merge independent fixes first: U1, U5.
+2. Merge runtime chain next: U2 -> U3 -> U4.
+3. Merge gate-structure test update last: U6.
+
+### Submission Order Recommendation
+
+1. Submit low-risk independent fixes first: PR-U1, PR-U5.
+2. Submit runtime bug fix next: PR-U2.
+3. Submit relocation fixes as a staged pair: PR-U3 then PR-U4.
+4. Submit PR-U6 last as the test-gate capstone for the stacked ELF sequence.
+5. Keep each PR with one focused motivation, one explicit validation command, and one `Depends on:` line in the PR body.
+
+### Live Upstream Status (2026-04-04)
+
+| PR | Scope | URL | Current State | Immediate Next Action |
+| --- | --- | --- | --- | --- |
+| U1 | Catch2 auto-init harness | https://github.com/varnish/tinykvm/pull/65 | merged | none |
+| U5 | mmap test semantics hardening | https://github.com/varnish/tinykvm/pull/66 | merged | none |
+| U2 | readlinkat guest-copy fix | https://github.com/varnish/tinykvm/pull/67 | merged | none |
+| U3 | RELATIVE addend semantics | https://github.com/varnish/tinykvm/pull/68 | open, ready for review | monitor maintainer feedback and adjust minimally if requested |
+| U4 | RELR bootstrap relocation support | https://github.com/varnish/tinykvm/pull/69 | open, ready for review | monitor maintainer feedback and adjust minimally if requested |
+| U6 | ELF no-reloc/reloc test split | https://github.com/varnish/tinykvm/pull/70 | open, ready for review | monitor maintainer feedback and adjust minimally if requested |
+
+### Remaining TODO / Follow-Up (Next Few Days)
+
+1. Check upstream PR activity daily and classify each response as: accepted direction, requested change, or scope split request.
+2. For U3/U4/U6, if review requests changes, apply the smallest PR-local patch and re-run only the scoped validation command listed in that PR body before pushing.
+3. Keep U3/U4/U6 synchronized with upstream/master to avoid stale merge conflict drift while waiting for review.
+4. After each upstream merge, sync local planning docs with resulting delta (accepted as-is vs accepted-with-changes vs rejected).
+5. Resume local rewrite workstream in parallel, but treat upstream feedback as a high-priority interrupt for small follow-up fixes.
+
+### Cherry-Pick/Extraction Note
+
+1. Current branch combines some of these in shared commits; use patch extraction (`git format-patch` with path filters or interactive staging on topic branches) to keep upstream PRs single-purpose.
+2. Do not include rewrite-program docs, baseline artifacts, or C API files in upstream PR branches.
+
+### Excluded From Upstream Candidate Queue
+
+1. C API additions and C-consumer smoke infrastructure.
+2. Baseline-gate scripts/metrics artifacts specific to this rewrite workflow.
+3. Program-status/audit/provenance docs specific to this branch execution model.
 
 ## Starting Point
 
