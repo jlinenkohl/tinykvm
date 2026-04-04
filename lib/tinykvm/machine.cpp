@@ -66,6 +66,7 @@ Machine::Machine(std::string_view binary, const MachineOptions& options)
 	}
 
 	this->setup_long_mode(options);
+	this->execute_pending_irelative_resolvers(options);
 
 	/* We need to adjust BRK if the kernel end address is
 	   above the default BRK start address. */
@@ -181,6 +182,7 @@ void Machine::reset_to(std::string_view binary, const MachineOptions& options)
 
 	this->vcpu.init(0, *this, options);
 	this->setup_long_mode(options);
+	this->execute_pending_irelative_resolvers(options);
 	struct tinykvm_regs regs {};
 	/* Store the registers, so that Machine is ready to go */
 	this->setup_registers(regs);
