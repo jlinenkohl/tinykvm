@@ -17,6 +17,18 @@ Canonical companion docs:
 - docs/deviation_provenance_log.md (mismatch/failure provenance)
 - phase-specific audit docs only when explicitly required by a phase checkpoint
 
+## Branch Topology (Working)
+
+1. `phase14_audit`: primary integration branch for local rewrite/audit work and status tracking.
+2. `port_analysis` (renamed from `port_test`): next-step branch reserved for actual porting experiments after analysis checkpoints.
+3. `vanilla`: local baseline mirror branch pinned to upstream vanilla reference for parity comparisons.
+4. `pr-u*` branches: narrow upstreamable fix branches kept focused to one PR scope each.
+
+Notes:
+
+1. Keep C ABI and demo evolution isolated from porting experiments when practical (dedicated branch from latest stable checkpoint).
+2. Prefer a small number of long-lived anchor branches (`phase14_audit`, `port_analysis`, `vanilla`) plus short-lived PR/topic branches.
+
 ## Iteration Tracker (Living)
 
 | Date | Iteration/Phase | What Changed | Validation Evidence | Baseline Checkpoint | Provenance Update | Docs Updated | Next Action |

@@ -418,6 +418,11 @@ bool Machine::relocate_relr_section(const char* section_name)
 			if (UNLIKELY(where == 0)) {
 				throw MachineException("Malformed RELR sequence", entry);
 			}
+			/* ELF RELR bitmap entry format:
+			   - LSB=1 marks bitmap entry
+			   - upper 63 bits encode relocations for subsequent machine words
+			   This mirrors the generic RELR decoding model used in Linux early
+			   relocation code (arch/arm64/kernel/pi/relocate.c). */
 			uint64_t bits = entry >> 1;
 			while (bits != 0)
 			{
@@ -428,6 +433,7 @@ bool Machine::relocate_relr_section(const char* section_name)
 				}
 				bits &= (bits - 1);
 			}
+			/* Consumed one 63-bit bitmap window (64-bit word minus 1 tag bit). */
 			where += 63 * sizeof(address_t);
 		}
 	}
