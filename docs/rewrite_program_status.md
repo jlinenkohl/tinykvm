@@ -23,16 +23,19 @@ Canonical companion docs:
 2. `port_analysis` (renamed from `port_test`): next-step branch reserved for actual porting experiments after analysis checkpoints.
 3. `vanilla`: local baseline mirror branch pinned to upstream vanilla reference for parity comparisons.
 4. `pr-u*` branches: narrow upstreamable fix branches kept focused to one PR scope each.
+5. `ifunc_irelative_track`: dedicated branch for full `R_X86_64_IRELATIVE` guest resolver execution work.
 
 Notes:
 
 1. Keep C ABI and demo evolution isolated from porting experiments when practical (dedicated branch from latest stable checkpoint).
 2. Prefer a small number of long-lived anchor branches (`phase14_audit`, `port_analysis`, `vanilla`) plus short-lived PR/topic branches.
+3. Keep IFUNC/IRELATIVE experimentation isolated from other rewrite work until resolver semantics and tests are stable.
 
 ## Iteration Tracker (Living)
 
 | Date | Iteration/Phase | What Changed | Validation Evidence | Baseline Checkpoint | Provenance Update | Docs Updated | Next Action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-04-04 | IFUNC Track Kickoff | Created dedicated `ifunc_irelative_track` workstream and defined phased plan with safety gate for `R_X86_64_IRELATIVE` resolver execution | planning-only checkpoint | no new baseline artifact captured in this pass | No new provenance class; this is scope/planning setup | working status | Implement strict-mode guard first, then add guest resolver execution and tests |
 | 2026-04-04 | Upstream Submission Pass (U-series) - Wave 2 | Confirmed U5/U2 merged upstream and moved remaining stacked set (U3/U4/U6) from draft to ready-for-review | No new code changes in this step; PR state transition only | no new baseline artifact captured in this pass | No new provenance class; this is upstream workflow progression | working status | Monitor review feedback on U3/U4/U6; apply minimal follow-up patches per PR as requested |
 | 2026-04-02 | Upstream Submission Pass (U-series) | Opened/split upstream PR set U1-U6, added stack dependencies and test evidence, moved U5/U2 to ready-for-review, kept relocation stack draft | Local verification before finalization: unit harness 8/8 pass; integration tinytest (`glibc_test`) pass | no new baseline artifact captured in this pass | No new provenance class; this is packaging/submission of known correctness improvements | working status + PR bodies | Monitor upstream feedback; undraft U3/U4/U6 only after dependency path is accepted or reviewer asks for consolidation |
 | 2026-03-30 | Phase14B2 | Closed Catch2 gap in harness and portability fix in unit ELF test | Memory-focused unit subset run: 4 pass, 1 fail (`test_mmap`) | `phase14b2` gate snapshot captured | DV-001, DV-002, DV-003 recorded as preexisting-vanilla | status, plan, provenance log | Begin Phase14C high-risk path audit |
@@ -76,6 +79,24 @@ Goal: run unmodified dynamic ELF binaries across host environments by making loa
 3. Enable/evaluate `.rela.plt` relocation pass where required for bootstrap correctness.
 4. Re-run `[ELF][reloc]` gate and record pass/fail plus relocation-type evidence.
 5. Keep `[ELF][no-reloc]` as a stable control test for non-dynamic loader regressions.
+
+### IFUNC / IRELATIVE Execution Track (New)
+
+Goal: replace current best-effort `R_X86_64_IRELATIVE` bootstrap behavior with semantically correct guest resolver execution so IFUNC-selected fast paths (e.g. AVX variants) can be chosen correctly.
+
+Safety-gate policy (first implementation step):
+
+1. Default behavior should remain conservative until validated.
+2. Add an explicit opt-in runtime switch for guest IFUNC resolver execution (CLI/option wiring).
+3. In strict mode, unsupported resolver execution should fail clearly rather than silently degrade.
+
+Phased plan:
+
+1. Phase A (guard rails): add explicit handling mode for IRELATIVE (`strict-fail`, `best-effort`, `execute-resolver`) and log path selection.
+2. Phase B (execution core): implement guest-context resolver invocation and write resolver return value to relocation target.
+3. Phase C (tests): add focused unit fixture with a simple IFUNC resolver plus capability-driven variant selection assertion.
+4. Phase D (integration): validate dynamic ELF relocation gate and integration tinytest behavior with resolver execution enabled.
+5. Phase E (policy decision): decide default mode based on stability/performance evidence and upstream review outcomes.
 
 ## Upstream Candidate Queue (Non-C-ABI Specific)
 
