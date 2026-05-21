@@ -8,9 +8,10 @@ static constexpr bool VERBOSE_COMPILER = true;
 
 std::string compile_command(const std::string& cc,
 	const std::string& outfile, const std::string& codefile,
-	const std::string& arguments)
+	const std::string& arguments,
+	const std::string& base_args)
 {
-	return cc + " -O2 -static -std=c11 " + arguments + " -x c -o " + outfile + " " + codefile;
+	return cc + " " + base_args + " " + arguments + " -x c -o " + outfile + " " + codefile;
 }
 std::string env_with_default(const char* var, const std::string& defval) {
 	std::string value = defval;
@@ -38,7 +39,9 @@ std::vector<uint8_t> load_file(const std::string& filename)
 	return result;
 }
 
-std::string build(const std::string& code, const std::string& compiler_args)
+static std::string build_internal(const std::string& code,
+	const std::string& compiler_args,
+	const std::string& base_args)
 {
 	// Create temporary filenames for code and binary
 	char code_filename[64];
@@ -62,7 +65,7 @@ std::string build(const std::string& code, const std::string& compiler_args)
 		"/tmp/binary-%08X", checksum);
 
 	auto cc = env_with_default("CC", "gcc");
-	auto command = compile_command(cc, bin_filename, code_filename, compiler_args);
+	auto command = compile_command(cc, bin_filename, code_filename, compiler_args, base_args);
 	if constexpr (VERBOSE_COMPILER) {
 		printf("Command: %s\n", command.c_str());
 	}
@@ -77,6 +80,16 @@ std::string build(const std::string& code, const std::string& compiler_args)
 
 	return bin_filename;
 }
+
+std::string build(const std::string& code, const std::string& compiler_args)
+{
+	return build_internal(code, compiler_args, "-O2 -static -std=c11");
+}
+
+std::string build_nonstatic(const std::string& code, const std::string& compiler_args)
+{
+	return build_internal(code, compiler_args, "-O2 -std=c11");
+}
 std::vector<uint8_t> build_and_load(const std::string& code)
 {
 	return load_file(build(code, ""));
@@ -87,5 +100,14 @@ std::pair<
 > build_and_load(const std::string& code, const std::string& args)
 {
 	const auto file = build(code, args);
+	return {file, load_file(file)};
+}
+
+std::pair<
+	std::string,
+	std::vector<uint8_t>
+> build_and_load_nonstatic(const std::string& code, const std::string& args)
+{
+	const auto file = build_nonstatic(code, args);
 	return {file, load_file(file)};
 }

@@ -5,6 +5,7 @@
 #include <elf.h>
 #include <limits.h>
 #include <stdexcept>
+#include <cstring>
 #include <unistd.h>
 extern std::vector<uint8_t> load_file(const std::string& filename);
 extern std::vector<uint8_t> build_and_load(const std::string& code);
@@ -116,6 +117,7 @@ static std::vector<uint8_t> make_rela_too_many(std::vector<uint8_t> elf)
 	rela->sh_size = (600001ULL * sizeof(Elf64_Rela));
 	return elf;
 }
+
 
 TEST_CASE("Initialize KVM", "[Initialize]")
 {
