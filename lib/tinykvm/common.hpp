@@ -66,6 +66,14 @@ namespace tinykvm
 	};
 
 	struct MachineOptions {
+		enum class RelocationOwnershipMode {
+			/* Architecture-default behavior for bootstrap relocation ownership. */
+			Auto = 0,
+			/* TinyKVM applies bootstrap relocations before guest entry. */
+			HostBootstrap = 1,
+			/* Guest dynamic linker/runtime owns relocation application entirely. */
+			GuestOnly = 2,
+		};
 		uint64_t max_mem = 16ULL << 20; /* 16MB */
 		uint32_t max_cow_mem = 0;
 		uint32_t stack_size = 1600UL << 10; /* 1600KB */
@@ -109,6 +117,8 @@ namespace tinykvm
 		bool relocate_fixed_mmap = true;
 		/* Make heap executable, to support JIT. */
 		bool executable_heap = false;
+		/* Who owns bootstrap relocation application for dynamically linked guests. */
+		RelocationOwnershipMode relocation_ownership_mode = RelocationOwnershipMode::Auto;
 		/* Enable file-backed memory mappings for large files */
 		bool mmap_backed_files = false;
 		/* Enable VM snapshot by file-mapping all physical memory

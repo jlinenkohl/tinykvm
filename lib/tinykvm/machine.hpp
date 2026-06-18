@@ -364,6 +364,8 @@ private:
 	bool  m_verbose_system_calls = false;
 	bool  m_verbose_mmap_syscalls = false;
 	bool  m_verbose_thread_syscalls = false;
+	MachineOptions::RelocationOwnershipMode m_relocation_ownership_mode =
+		MachineOptions::RelocationOwnershipMode::Auto;
 	void* m_userdata = nullptr;
 
 	std::string_view m_binary;

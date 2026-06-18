@@ -14,6 +14,32 @@ namespace tinykvm {
 static constexpr bool VERBOSE_LOADER = false;
 static constexpr int MAX_LOADABLE_SEGMENTS = 16;
 
+static bool should_apply_bootstrap_relocations(
+	std::string_view binary,
+	MachineOptions::RelocationOwnershipMode mode)
+{
+	switch (mode)
+	{
+		case MachineOptions::RelocationOwnershipMode::HostBootstrap:
+			return true;
+		case MachineOptions::RelocationOwnershipMode::GuestOnly:
+			return false;
+		case MachineOptions::RelocationOwnershipMode::Auto:
+			break;
+	}
+
+#ifdef TINYKVM_ARCH_ARM64
+	/* Preserve ARM64 dynamic-loader ownership for ET_DYN binaries. */
+	const auto* ehdr = elf_header(binary);
+	if (ehdr->e_type == ET_DYN) {
+		return false;
+	}
+#endif
+
+	/* Default to existing host-bootstrap behavior. */
+	return true;
+}
+
 DynamicElf is_dynamic_elf(std::string_view binary)
 {
 	if (binary.size() < sizeof(Elf64_Ehdr))
@@ -459,20 +485,17 @@ bool Machine::relocate_relr_section(const char* section_name)
 
 void Machine::dynamic_linking(std::string_view binary, const MachineOptions& options)
 {
-	(void)binary;
 	(void)options;
-#if defined(TINYKVM_ARCH_ARM64)
-	/* A glibc ET_DYN entered at its own entry point (ld.so, static-PIE)
-	   self-relocates during startup. RELR entries are "*addr += base" —
-	   not idempotent — so pre-applying them here would double-relocate
-	   once the guest applies them again (modern aarch64 ld.so carries
-	   DT_RELR). RELATIVE rela entries are absolute writes the guest
-	   redoes anyway. Leave all relocation to the guest. */
-#else
+	if (!should_apply_bootstrap_relocations(binary, this->m_relocation_ownership_mode)) {
+		if (options.verbose_loader) {
+			printf("* Dynamic relocation ownership: guest-only (host bootstrap skipped)\n");
+		}
+		return;
+	}
+
 	this->relocate_relr_section(".relr.dyn");
 	this->relocate_section(".rela.dyn", ".dynsym");
 	//this->relocate_section(".rela.plt", ".dynsym");
-#endif
 }
 
 }

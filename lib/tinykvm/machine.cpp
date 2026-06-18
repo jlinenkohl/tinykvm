@@ -36,6 +36,7 @@ Machine::Machine(std::string_view binary, const MachineOptions& options)
 	: m_forked {false},
 	  m_just_reset {false},
 	  m_relocate_fixed_mmap {options.relocate_fixed_mmap},
+	  m_relocation_ownership_mode {options.relocation_ownership_mode},
 	  memory { vMemory::New(*this, options,
 	  	options.vmem_base_address, options.vmem_base_address + 0x100000, options.max_mem)
 	  },
@@ -115,6 +116,7 @@ Machine::Machine(const Machine& other, const MachineOptions& options)
 	  m_forked  {true},
 	  m_just_reset {true},
 	  m_relocate_fixed_mmap {options.relocate_fixed_mmap},
+	  m_relocation_ownership_mode {options.relocation_ownership_mode},
 	  m_binary {options.binary.empty() ? other.m_binary : options.binary},
 	  memory   {*this, options, other.memory},
 	  m_image_base    {other.m_image_base},
@@ -191,6 +193,7 @@ void Machine::reset_to(std::string_view binary, const MachineOptions& options)
 	this->remote_disconnect();
 
 	this->m_mmap_cache = {};
+	this->m_relocation_ownership_mode = options.relocation_ownership_mode;
 	this->m_mt.reset(nullptr);
 	this->m_signals.reset(nullptr);
 	this->m_fds.reset(nullptr);
@@ -251,6 +254,8 @@ bool Machine::reset_to(const Machine& other, const MachineOptions& options)
 
 	this->m_just_reset = full_reset;
 	this->m_mmap_cache = other.m_mmap_cache;
+	this->m_irelative_mode = options.irelative_mode;
+	this->m_relocation_ownership_mode = options.relocation_ownership_mode;
 	this->vcpu.last_fault_address = 0;
 
 	if (other.has_threads() && has_threads()) {
