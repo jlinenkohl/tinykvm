@@ -254,7 +254,6 @@ bool Machine::reset_to(const Machine& other, const MachineOptions& options)
 
 	this->m_just_reset = full_reset;
 	this->m_mmap_cache = other.m_mmap_cache;
-	this->m_irelative_mode = options.irelative_mode;
 	this->m_relocation_ownership_mode = options.relocation_ownership_mode;
 	this->vcpu.last_fault_address = 0;
 
