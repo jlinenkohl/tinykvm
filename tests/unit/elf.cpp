@@ -209,10 +209,18 @@ TEST_CASE("Relocation ownership Auto vs GuestOnly", "[ELF][relocation]")
 		.dylink_address_hint = IMAGE_BASE,
 		.relocation_ownership_mode = tinykvm::MachineOptions::RelocationOwnershipMode::Auto,
 	}};
+	tinykvm::Machine host_bootstrap{ld_linux_x86_64_so, {
+		.max_mem = MAX_MEMORY,
+		.dylink_address_hint = IMAGE_BASE,
+		.relocation_ownership_mode = tinykvm::MachineOptions::RelocationOwnershipMode::HostBootstrap,
+	}};
 
 	const uint64_t guest_only_value = read_u64_from_guest(guest_only, target_guest_addr);
 	const uint64_t auto_mode_value = read_u64_from_guest(auto_mode, target_guest_addr);
+	const uint64_t host_bootstrap_value = read_u64_from_guest(host_bootstrap, target_guest_addr);
 
 	REQUIRE(guest_only_value == expected_unrelocated);
 	REQUIRE(auto_mode_value == expected_unrelocated + IMAGE_BASE);
+	REQUIRE(host_bootstrap_value == expected_unrelocated + IMAGE_BASE);
+	REQUIRE(host_bootstrap_value == auto_mode_value);
 }
